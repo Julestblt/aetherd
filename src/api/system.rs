@@ -2,68 +2,33 @@ use std::sync::Arc;
 
 use axum::Json;
 use axum::extract::State;
-use serde::Serialize;
-use time::OffsetDateTime;
-use utoipa::ToSchema;
 
 use crate::api::error::{ApiError, ErrorResponse};
 use crate::app::AppState;
-use crate::sampling::Section;
-use crate::system::cpu::{CpuCollector, CpuMetrics};
-use crate::system::disks::{DiskCollector, DisksMetrics};
-use crate::system::host::{HostCollector, HostMetrics};
-use crate::system::load::{LoadCollector, LoadMetrics};
-use crate::system::memory::{MemoryCollector, MemoryMetrics};
-use crate::system::network::{NetworkCollector, NetworkMetrics};
-use crate::system::uptime::{UptimeCollector, UptimeMetrics};
-use crate::system::{SystemCollector, SystemPaths};
-
-/// Snapshot of every system section, each reporting its own availability.
-#[derive(Debug, Serialize, ToSchema)]
-pub(crate) struct SystemOverview {
-    /// RFC3339 UTC timestamp of this response.
-    #[serde(with = "time::serde::rfc3339")]
-    pub collected_at: OffsetDateTime,
-    /// Host metadata.
-    pub host: Section<HostMetrics>,
-    /// CPU metrics.
-    pub cpu: Section<CpuMetrics>,
-    /// Memory metrics.
-    pub memory: Section<MemoryMetrics>,
-    /// Load average.
-    pub load: Section<LoadMetrics>,
-    /// System uptime.
-    pub uptime: Section<UptimeMetrics>,
-    /// Filesystem metrics.
-    pub disks: Section<DisksMetrics>,
-    /// Network metrics.
-    pub network: Section<NetworkMetrics>,
-}
+use crate::sampling::{Section, SystemSnapshot};
+use crate::system::cpu::CpuMetrics;
+use crate::system::disks::DisksMetrics;
+use crate::system::host::HostMetrics;
+use crate::system::load::LoadMetrics;
+use crate::system::memory::MemoryMetrics;
+use crate::system::network::NetworkMetrics;
+use crate::system::uptime::UptimeMetrics;
 
 #[utoipa::path(
     get,
     path = "/",
     tag = "system",
-    responses((
-        status = 200,
-        description = "System overview; every section reports its own availability",
-        body = SystemOverview
-    ))
+    responses(
+        (status = 200, description = "Latest system snapshot; every section reports its own availability", body = SystemSnapshot),
+        (status = 503, description = "No snapshot collected yet", body = ErrorResponse)
+    )
 )]
-pub(crate) async fn overview(State(state): State<AppState>) -> Json<SystemOverview> {
-    let paths = &state.paths;
-    let disks = DiskCollector::new(Arc::clone(&state.mount_stats));
-
-    Json(SystemOverview {
-        collected_at: OffsetDateTime::now_utc(),
-        host: probe_section(&HostCollector, paths),
-        cpu: probe_section(&CpuCollector, paths),
-        memory: probe_section(&MemoryCollector, paths),
-        load: probe_section(&LoadCollector, paths),
-        uptime: probe_section(&UptimeCollector, paths),
-        disks: probe_section(&disks, paths),
-        network: probe_section(&NetworkCollector, paths),
-    })
+pub(crate) async fn overview(
+    State(state): State<AppState>,
+) -> Result<Json<Arc<SystemSnapshot>>, ApiError> {
+    let guard = state.snapshot();
+    let snapshot = guard.as_ref().ok_or(ApiError::NotReady)?;
+    Ok(Json(Arc::clone(snapshot)))
 }
 
 #[utoipa::path(
@@ -72,11 +37,13 @@ pub(crate) async fn overview(State(state): State<AppState>) -> Json<SystemOvervi
     tag = "system",
     responses(
         (status = 200, description = "CPU metrics", body = CpuMetrics),
-        (status = 503, description = "CPU metrics unavailable", body = ErrorResponse)
+        (status = 503, description = "Snapshot not ready or CPU metrics unavailable", body = ErrorResponse)
     )
 )]
 pub(crate) async fn cpu(State(state): State<AppState>) -> Result<Json<CpuMetrics>, ApiError> {
-    probe(&CpuCollector, &state.paths).map(Json)
+    let guard = state.snapshot();
+    let snapshot = guard.as_ref().ok_or(ApiError::NotReady)?;
+    section_value(&snapshot.cpu).map(Json)
 }
 
 #[utoipa::path(
@@ -85,21 +52,28 @@ pub(crate) async fn cpu(State(state): State<AppState>) -> Result<Json<CpuMetrics
     tag = "system",
     responses(
         (status = 200, description = "Memory metrics", body = MemoryMetrics),
-        (status = 503, description = "Memory metrics unavailable", body = ErrorResponse)
+        (status = 503, description = "Snapshot not ready or memory metrics unavailable", body = ErrorResponse)
     )
 )]
 pub(crate) async fn memory(State(state): State<AppState>) -> Result<Json<MemoryMetrics>, ApiError> {
-    probe(&MemoryCollector, &state.paths).map(Json)
+    let guard = state.snapshot();
+    let snapshot = guard.as_ref().ok_or(ApiError::NotReady)?;
+    section_value(&snapshot.memory).map(Json)
 }
 
 #[utoipa::path(
     get,
     path = "/host",
     tag = "system",
-    responses((status = 200, description = "Host information", body = HostMetrics))
+    responses(
+        (status = 200, description = "Host information", body = HostMetrics),
+        (status = 503, description = "Snapshot not ready or host information unavailable", body = ErrorResponse)
+    )
 )]
 pub(crate) async fn host(State(state): State<AppState>) -> Result<Json<HostMetrics>, ApiError> {
-    probe(&HostCollector, &state.paths).map(Json)
+    let guard = state.snapshot();
+    let snapshot = guard.as_ref().ok_or(ApiError::NotReady)?;
+    section_value(&snapshot.host).map(Json)
 }
 
 #[utoipa::path(
@@ -108,11 +82,13 @@ pub(crate) async fn host(State(state): State<AppState>) -> Result<Json<HostMetri
     tag = "system",
     responses(
         (status = 200, description = "Load average", body = LoadMetrics),
-        (status = 503, description = "Load average unavailable", body = ErrorResponse)
+        (status = 503, description = "Snapshot not ready or load average unavailable", body = ErrorResponse)
     )
 )]
 pub(crate) async fn load(State(state): State<AppState>) -> Result<Json<LoadMetrics>, ApiError> {
-    probe(&LoadCollector, &state.paths).map(Json)
+    let guard = state.snapshot();
+    let snapshot = guard.as_ref().ok_or(ApiError::NotReady)?;
+    section_value(&snapshot.load).map(Json)
 }
 
 #[utoipa::path(
@@ -121,11 +97,13 @@ pub(crate) async fn load(State(state): State<AppState>) -> Result<Json<LoadMetri
     tag = "system",
     responses(
         (status = 200, description = "System uptime", body = UptimeMetrics),
-        (status = 503, description = "Uptime unavailable", body = ErrorResponse)
+        (status = 503, description = "Snapshot not ready or uptime unavailable", body = ErrorResponse)
     )
 )]
 pub(crate) async fn uptime(State(state): State<AppState>) -> Result<Json<UptimeMetrics>, ApiError> {
-    probe(&UptimeCollector, &state.paths).map(Json)
+    let guard = state.snapshot();
+    let snapshot = guard.as_ref().ok_or(ApiError::NotReady)?;
+    section_value(&snapshot.uptime).map(Json)
 }
 
 #[utoipa::path(
@@ -134,12 +112,13 @@ pub(crate) async fn uptime(State(state): State<AppState>) -> Result<Json<UptimeM
     tag = "system",
     responses(
         (status = 200, description = "Filesystem metrics, excluding pseudo-filesystems", body = DisksMetrics),
-        (status = 503, description = "Filesystem metrics unavailable", body = ErrorResponse)
+        (status = 503, description = "Snapshot not ready or filesystem metrics unavailable", body = ErrorResponse)
     )
 )]
 pub(crate) async fn disks(State(state): State<AppState>) -> Result<Json<DisksMetrics>, ApiError> {
-    let collector = DiskCollector::new(Arc::clone(&state.mount_stats));
-    probe(&collector, &state.paths).map(Json)
+    let guard = state.snapshot();
+    let snapshot = guard.as_ref().ok_or(ApiError::NotReady)?;
+    section_value(&snapshot.disks).map(Json)
 }
 
 #[utoipa::path(
@@ -148,34 +127,20 @@ pub(crate) async fn disks(State(state): State<AppState>) -> Result<Json<DisksMet
     tag = "system",
     responses(
         (status = 200, description = "Network interface counters", body = NetworkMetrics),
-        (status = 503, description = "Network metrics unavailable", body = ErrorResponse)
+        (status = 503, description = "Snapshot not ready or network metrics unavailable", body = ErrorResponse)
     )
 )]
 pub(crate) async fn network(
     State(state): State<AppState>,
 ) -> Result<Json<NetworkMetrics>, ApiError> {
-    probe(&NetworkCollector, &state.paths).map(Json)
+    let guard = state.snapshot();
+    let snapshot = guard.as_ref().ok_or(ApiError::NotReady)?;
+    section_value(&snapshot.network).map(Json)
 }
 
-fn probe<C: SystemCollector>(collector: &C, paths: &SystemPaths) -> Result<C::Metric, ApiError> {
-    collector.collect(paths).map_err(|error| {
-        tracing::warn!(collector = collector.name(), error = %error, "collector failed");
-        ApiError::Unavailable(error.to_string())
-    })
-}
-
-fn probe_section<C: SystemCollector>(collector: &C, paths: &SystemPaths) -> Section<C::Metric> {
-    match collector.collect(paths) {
-        Ok(value) => Section::Available { value },
-        Err(error) => {
-            tracing::warn!(
-                collector = collector.name(),
-                error = %error,
-                "collector unavailable in overview"
-            );
-            Section::Unavailable {
-                reason: error.to_string(),
-            }
-        }
+fn section_value<T: Clone>(section: &Section<T>) -> Result<T, ApiError> {
+    match section {
+        Section::Available { value } => Ok(value.clone()),
+        Section::Unavailable { reason } => Err(ApiError::Unavailable(reason.clone())),
     }
 }

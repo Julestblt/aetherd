@@ -16,6 +16,9 @@ pub(crate) enum ApiError {
     /// The HTTP method is not supported for this resource.
     #[error("method not allowed")]
     MethodNotAllowed,
+    /// No telemetry snapshot has been sampled yet.
+    #[error("no system snapshot has been collected yet")]
+    NotReady,
     /// A metric could not be collected on this host.
     #[error("{0}")]
     Unavailable(String),
@@ -26,7 +29,7 @@ impl ApiError {
         match self {
             Self::NotFound => StatusCode::NOT_FOUND,
             Self::MethodNotAllowed => StatusCode::METHOD_NOT_ALLOWED,
-            Self::Unavailable(_) => StatusCode::SERVICE_UNAVAILABLE,
+            Self::NotReady | Self::Unavailable(_) => StatusCode::SERVICE_UNAVAILABLE,
         }
     }
 
@@ -34,6 +37,7 @@ impl ApiError {
         match self {
             Self::NotFound => ErrorCode::NotFound,
             Self::MethodNotAllowed => ErrorCode::MethodNotAllowed,
+            Self::NotReady => ErrorCode::NotReady,
             Self::Unavailable(_) => ErrorCode::Unavailable,
         }
     }
@@ -85,6 +89,8 @@ pub(crate) enum ErrorCode {
     NotFound,
     /// The HTTP method is not supported for this resource.
     MethodNotAllowed,
+    /// No telemetry snapshot has been sampled yet.
+    NotReady,
     /// A metric is not available on this host.
     Unavailable,
 }

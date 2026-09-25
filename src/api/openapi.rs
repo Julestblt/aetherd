@@ -2,8 +2,7 @@ use utoipa::OpenApi;
 
 use crate::api::error::{ErrorCode, ErrorDetail, ErrorResponse};
 use crate::api::health::{HealthResponse, HealthStatus};
-use crate::api::system::SystemOverview;
-use crate::sampling::Section;
+use crate::sampling::{Section, SystemSnapshot};
 use crate::system::cpu::{CpuCore, CpuMetrics, CpuTimes};
 use crate::system::disks::{DiskUsage, DisksMetrics, FilesystemMetrics};
 use crate::system::host::{HostMetrics, OsRelease};
@@ -35,7 +34,7 @@ use crate::system::uptime::UptimeMetrics;
     components(schemas(
         HealthResponse,
         HealthStatus,
-        SystemOverview,
+        SystemSnapshot,
         Section<HostMetrics>,
         Section<CpuMetrics>,
         Section<MemoryMetrics>,

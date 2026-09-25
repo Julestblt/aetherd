@@ -17,9 +17,16 @@ use axum::Router;
 use axum::body::Body;
 use axum::http::{Method, Request, StatusCode};
 use http_body_util::BodyExt;
+use time::OffsetDateTime;
 use tower::ServiceExt;
 
-use aetherd::{AppState, DiskUsage, MountStats, SystemPaths, build_router};
+use aetherd::{AppState, DiskUsage, MountStats, SnapshotBuilder, SystemPaths, build_router};
+
+pub(crate) const SAMPLE_TIME_UNIX: i64 = 1_700_000_000;
+
+pub(crate) fn sample_time() -> OffsetDateTime {
+    OffsetDateTime::from_unix_timestamp(SAMPLE_TIME_UNIX).expect("valid sample timestamp")
+}
 
 pub(crate) fn fixture_root() -> PathBuf {
     Path::new(env!("CARGO_MANIFEST_DIR")).join("tests/fixtures")
@@ -58,16 +65,30 @@ impl MountStats for FakeMountStats {
     }
 }
 
+pub(crate) fn state_with_mount_stats(
+    paths: SystemPaths,
+    mount_stats: Arc<dyn MountStats>,
+) -> AppState {
+    let state = AppState::with_mount_stats(paths.clone(), Arc::clone(&mount_stats));
+    let snapshot = SnapshotBuilder::new(paths, mount_stats).collect(sample_time());
+    state.publish(snapshot);
+    state
+}
+
+pub(crate) fn state_with(paths: SystemPaths) -> AppState {
+    state_with_mount_stats(paths, Arc::new(FakeMountStats::default()))
+}
+
 pub(crate) fn app() -> Router {
     app_with(fixture_paths())
 }
 
 pub(crate) fn app_with(paths: SystemPaths) -> Router {
-    app_with_mount_stats(paths, Arc::new(FakeMountStats::default()))
+    build_router(state_with(paths))
 }
 
 pub(crate) fn app_with_mount_stats(paths: SystemPaths, mount_stats: Arc<dyn MountStats>) -> Router {
-    build_router(AppState::with_mount_stats(paths, mount_stats))
+    build_router(state_with_mount_stats(paths, mount_stats))
 }
 
 pub(crate) async fn get(uri: &str) -> (StatusCode, serde_json::Value) {

@@ -80,6 +80,10 @@ impl AppState {
         self.snapshots.clone()
     }
 
+    pub(crate) fn snapshot(&self) -> watch::Ref<'_, Option<Arc<SystemSnapshot>>> {
+        self.snapshots.borrow()
+    }
+
     pub(crate) fn shutdown_receiver(&self) -> Shutdown {
         Shutdown::receiver(&self.shutdown)
     }

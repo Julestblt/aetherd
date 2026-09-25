@@ -199,6 +199,7 @@ expression: body
         "enum": [
           "not_found",
           "method_not_allowed",
+          "not_ready",
           "unavailable"
         ],
         "type": "string"
@@ -1143,10 +1144,10 @@ expression: body
         ]
       },
       "SystemOverview": {
-        "description": "Snapshot of every system section, each reporting its own availability.",
+        "description": "One complete point-in-time observation of the system.\n\nEvery section is independent: a section that could not be collected is\nmarked unavailable with a reason, and never replaced by a synthetic value.",
         "properties": {
           "collected_at": {
-            "description": "RFC3339 UTC timestamp of this response.",
+            "description": "RFC3339 UTC timestamp of this sample.",
             "format": "date-time",
             "type": "string"
           },
@@ -1235,7 +1236,17 @@ expression: body
                 }
               }
             },
-            "description": "System overview; every section reports its own availability"
+            "description": "Latest system snapshot; every section reports its own availability"
+          },
+          "503": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "No snapshot collected yet"
           }
         },
         "tags": [
@@ -1265,7 +1276,7 @@ expression: body
                 }
               }
             },
-            "description": "CPU metrics unavailable"
+            "description": "Snapshot not ready or CPU metrics unavailable"
           }
         },
         "tags": [
@@ -1295,7 +1306,7 @@ expression: body
                 }
               }
             },
-            "description": "Filesystem metrics unavailable"
+            "description": "Snapshot not ready or filesystem metrics unavailable"
           }
         },
         "tags": [
@@ -1336,6 +1347,16 @@ expression: body
               }
             },
             "description": "Host information"
+          },
+          "503": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Snapshot not ready or host information unavailable"
           }
         },
         "tags": [
@@ -1365,7 +1386,7 @@ expression: body
                 }
               }
             },
-            "description": "Load average unavailable"
+            "description": "Snapshot not ready or load average unavailable"
           }
         },
         "tags": [
@@ -1395,7 +1416,7 @@ expression: body
                 }
               }
             },
-            "description": "Memory metrics unavailable"
+            "description": "Snapshot not ready or memory metrics unavailable"
           }
         },
         "tags": [
@@ -1425,7 +1446,7 @@ expression: body
                 }
               }
             },
-            "description": "Network metrics unavailable"
+            "description": "Snapshot not ready or network metrics unavailable"
           }
         },
         "tags": [
@@ -1455,7 +1476,7 @@ expression: body
                 }
               }
             },
-            "description": "Uptime unavailable"
+            "description": "Snapshot not ready or uptime unavailable"
           }
         },
         "tags": [
@@ -1475,7 +1496,17 @@ expression: body
                 }
               }
             },
-            "description": "System overview; every section reports its own availability"
+            "description": "Latest system snapshot; every section reports its own availability"
+          },
+          "503": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "No snapshot collected yet"
           }
         },
         "tags": [
@@ -1505,7 +1536,7 @@ expression: body
                 }
               }
             },
-            "description": "CPU metrics unavailable"
+            "description": "Snapshot not ready or CPU metrics unavailable"
           }
         },
         "tags": [
@@ -1535,7 +1566,7 @@ expression: body
                 }
               }
             },
-            "description": "Filesystem metrics unavailable"
+            "description": "Snapshot not ready or filesystem metrics unavailable"
           }
         },
         "tags": [
@@ -1556,6 +1587,16 @@ expression: body
               }
             },
             "description": "Host information"
+          },
+          "503": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Snapshot not ready or host information unavailable"
           }
         },
         "tags": [
@@ -1585,7 +1626,7 @@ expression: body
                 }
               }
             },
-            "description": "Load average unavailable"
+            "description": "Snapshot not ready or load average unavailable"
           }
         },
         "tags": [
@@ -1615,7 +1656,7 @@ expression: body
                 }
               }
             },
-            "description": "Memory metrics unavailable"
+            "description": "Snapshot not ready or memory metrics unavailable"
           }
         },
         "tags": [
@@ -1645,7 +1686,7 @@ expression: body
                 }
               }
             },
-            "description": "Network metrics unavailable"
+            "description": "Snapshot not ready or network metrics unavailable"
           }
         },
         "tags": [
@@ -1675,7 +1716,7 @@ expression: body
                 }
               }
             },
-            "description": "Uptime unavailable"
+            "description": "Snapshot not ready or uptime unavailable"
           }
         },
         "tags": [
