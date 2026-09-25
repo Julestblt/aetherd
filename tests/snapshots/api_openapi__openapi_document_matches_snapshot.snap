@@ -1264,96 +1264,6 @@ expression: body
   },
   "openapi": "3.1.0",
   "paths": {
-    "/": {
-      "get": {
-        "operationId": "overview",
-        "responses": {
-          "200": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/SystemOverview"
-                }
-              }
-            },
-            "description": "Latest system snapshot; every section reports its own availability"
-          },
-          "503": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorResponse"
-                }
-              }
-            },
-            "description": "No snapshot collected yet"
-          }
-        },
-        "tags": [
-          "system"
-        ]
-      }
-    },
-    "/cpu": {
-      "get": {
-        "operationId": "cpu",
-        "responses": {
-          "200": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/CpuMetrics"
-                }
-              }
-            },
-            "description": "CPU metrics"
-          },
-          "503": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorResponse"
-                }
-              }
-            },
-            "description": "Snapshot not ready or CPU metrics unavailable"
-          }
-        },
-        "tags": [
-          "system"
-        ]
-      }
-    },
-    "/disks": {
-      "get": {
-        "operationId": "disks",
-        "responses": {
-          "200": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/DisksMetrics"
-                }
-              }
-            },
-            "description": "Filesystem metrics, excluding pseudo-filesystems"
-          },
-          "503": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorResponse"
-                }
-              }
-            },
-            "description": "Snapshot not ready or filesystem metrics unavailable"
-          }
-        },
-        "tags": [
-          "system"
-        ]
-      }
-    },
     "/health": {
       "get": {
         "operationId": "health",
@@ -1371,156 +1281,6 @@ expression: body
         },
         "tags": [
           "health"
-        ]
-      }
-    },
-    "/host": {
-      "get": {
-        "operationId": "host",
-        "responses": {
-          "200": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/HostMetrics"
-                }
-              }
-            },
-            "description": "Host information"
-          },
-          "503": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorResponse"
-                }
-              }
-            },
-            "description": "Snapshot not ready or host information unavailable"
-          }
-        },
-        "tags": [
-          "system"
-        ]
-      }
-    },
-    "/load": {
-      "get": {
-        "operationId": "load",
-        "responses": {
-          "200": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/LoadMetrics"
-                }
-              }
-            },
-            "description": "Load average"
-          },
-          "503": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorResponse"
-                }
-              }
-            },
-            "description": "Snapshot not ready or load average unavailable"
-          }
-        },
-        "tags": [
-          "system"
-        ]
-      }
-    },
-    "/memory": {
-      "get": {
-        "operationId": "memory",
-        "responses": {
-          "200": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/MemoryMetrics"
-                }
-              }
-            },
-            "description": "Memory metrics"
-          },
-          "503": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorResponse"
-                }
-              }
-            },
-            "description": "Snapshot not ready or memory metrics unavailable"
-          }
-        },
-        "tags": [
-          "system"
-        ]
-      }
-    },
-    "/network": {
-      "get": {
-        "operationId": "network",
-        "responses": {
-          "200": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/NetworkMetrics"
-                }
-              }
-            },
-            "description": "Network interface counters"
-          },
-          "503": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorResponse"
-                }
-              }
-            },
-            "description": "Snapshot not ready or network metrics unavailable"
-          }
-        },
-        "tags": [
-          "system"
-        ]
-      }
-    },
-    "/uptime": {
-      "get": {
-        "operationId": "uptime",
-        "responses": {
-          "200": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/UptimeMetrics"
-                }
-              }
-            },
-            "description": "System uptime"
-          },
-          "503": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorResponse"
-                }
-              }
-            },
-            "description": "Snapshot not ready or uptime unavailable"
-          }
-        },
-        "tags": [
-          "system"
         ]
       }
     },
@@ -1727,6 +1487,19 @@ expression: body
               }
             },
             "description": "Snapshot not ready or network metrics unavailable"
+          }
+        },
+        "tags": [
+          "system"
+        ]
+      }
+    },
+    "/v1/system/stream": {
+      "get": {
+        "operationId": "stream",
+        "responses": {
+          "200": {
+            "description": "Server-Sent Events stream. Each event is named `system` and its data is the latest SystemSnapshot serialized as JSON. The first event carries the current snapshot; later events arrive as new samples are published."
           }
         },
         "tags": [

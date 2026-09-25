@@ -48,7 +48,7 @@ Status legend: `[x]` done and tested, `[ ]` not started, `[~]` partially done.
 - [x] `GET /v1/system/uptime`
 - [x] `GET /v1/system/disks` with explicit pseudo-filesystem filtering
 - [x] `GET /v1/system/network`
-- [ ] `GET /v1/system/stream` Server-Sent Events live stream
+- [x] `GET /v1/system/stream` Server-Sent Events live stream
 - [x] Machine-readable, consistent error schema
 - [x] Consistent units and RFC3339 UTC timestamps documented in schemas
 - [ ] Optional authentication for exposed deployments

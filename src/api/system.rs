@@ -1,7 +1,10 @@
+use std::convert::Infallible;
 use std::sync::Arc;
+use std::time::Duration;
 
 use axum::Json;
 use axum::extract::State;
+use axum::response::sse::{Event, KeepAlive, Sse};
 
 use crate::api::error::{ApiError, ErrorResponse};
 use crate::app::AppState;
@@ -13,6 +16,9 @@ use crate::system::load::LoadMetrics;
 use crate::system::memory::MemoryMetrics;
 use crate::system::network::NetworkMetrics;
 use crate::system::uptime::UptimeMetrics;
+
+const STREAM_EVENT_NAME: &str = "system";
+const KEEP_ALIVE_INTERVAL: Duration = Duration::from_secs(15);
 
 #[utoipa::path(
     get,
@@ -142,5 +148,61 @@ fn section_value<T: Clone>(section: &Section<T>) -> Result<T, ApiError> {
     match section {
         Section::Available { value } => Ok(value.clone()),
         Section::Unavailable { reason } => Err(ApiError::Unavailable(reason.clone())),
+    }
+}
+
+#[utoipa::path(
+    get,
+    path = "/stream",
+    tag = "system",
+    responses((
+        status = 200,
+        description = "Server-Sent Events stream. Each event is named `system` and its data is the latest SystemSnapshot serialized as JSON. The first event carries the current snapshot; later events arrive as new samples are published."
+    ))
+)]
+pub(crate) async fn stream(
+    State(state): State<AppState>,
+) -> Sse<impl tokio_stream::Stream<Item = Result<Event, Infallible>>> {
+    let mut snapshots = state.subscribe();
+    let mut shutdown = state.shutdown_receiver();
+
+    let stream = async_stream::stream! {
+        loop {
+            if let Some(event) = current_event(&mut snapshots) {
+                yield event;
+            }
+
+            tokio::select! {
+                changed = snapshots.changed() => {
+                    if changed.is_err() {
+                        break;
+                    }
+                }
+                () = shutdown.recv() => break,
+            }
+        }
+    };
+
+    Sse::new(stream).keep_alive(
+        KeepAlive::new()
+            .interval(KEEP_ALIVE_INTERVAL)
+            .text("keep-alive"),
+    )
+}
+
+fn current_event(
+    snapshots: &mut tokio::sync::watch::Receiver<Option<Arc<SystemSnapshot>>>,
+) -> Option<Result<Event, Infallible>> {
+    let guard = snapshots.borrow_and_update();
+    let snapshot = guard.as_ref()?;
+    match Event::default()
+        .event(STREAM_EVENT_NAME)
+        .json_data(&**snapshot)
+    {
+        Ok(event) => Some(Ok(event)),
+        Err(error) => {
+            tracing::warn!(error = %error, "failed to serialize snapshot for SSE");
+            None
+        }
     }
 }

@@ -20,17 +20,7 @@ use crate::system::uptime::UptimeMetrics;
         description = "Linux system telemetry and, later, normalized AI provider usage.",
         license(name = "MIT OR Apache-2.0")
     ),
-    paths(
-        crate::api::health::health,
-        crate::api::system::overview,
-        crate::api::system::cpu,
-        crate::api::system::memory,
-        crate::api::system::host,
-        crate::api::system::load,
-        crate::api::system::uptime,
-        crate::api::system::disks,
-        crate::api::system::network
-    ),
+    paths(crate::api::health::health),
     components(schemas(
         HealthResponse,
         HealthStatus,

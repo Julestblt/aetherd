@@ -84,6 +84,10 @@ impl AppState {
         self.snapshots.borrow()
     }
 
+    pub(crate) fn subscribe(&self) -> watch::Receiver<Option<Arc<SystemSnapshot>>> {
+        self.snapshots.subscribe()
+    }
+
     pub(crate) fn shutdown_receiver(&self) -> Shutdown {
         Shutdown::receiver(&self.shutdown)
     }
@@ -128,7 +132,8 @@ fn build_parts() -> (Router<AppState>, utoipa::openapi::OpenApi) {
         .routes(routes!(system_api::load))
         .routes(routes!(system_api::uptime))
         .routes(routes!(system_api::disks))
-        .routes(routes!(system_api::network));
+        .routes(routes!(system_api::network))
+        .routes(routes!(system_api::stream));
 
     OpenApiRouter::with_openapi(ApiDoc::openapi())
         .routes(routes!(health::health))
