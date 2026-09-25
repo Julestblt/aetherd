@@ -107,3 +107,32 @@ pub(crate) async fn send_for(
     let json = serde_json::from_slice(&bytes).expect("json body");
     (status, json)
 }
+
+pub(crate) async fn get_text(uri: &str) -> (StatusCode, Option<String>, String) {
+    let response = app()
+        .oneshot(
+            Request::builder()
+                .uri(uri)
+                .body(Body::empty())
+                .expect("valid request"),
+        )
+        .await
+        .expect("router responds");
+    let status = response.status();
+    let content_type = response
+        .headers()
+        .get(axum::http::header::CONTENT_TYPE)
+        .and_then(|value| value.to_str().ok())
+        .map(str::to_owned);
+    let bytes = response
+        .into_body()
+        .collect()
+        .await
+        .expect("body collected")
+        .to_bytes();
+    (
+        status,
+        content_type,
+        String::from_utf8_lossy(&bytes).into_owned(),
+    )
+}

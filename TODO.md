@@ -56,7 +56,7 @@ Status legend: `[x]` done and tested, `[ ]` not started, `[~]` partially done.
 
 - [x] Compile-time generated OpenAPI from Rust types
 - [x] `/openapi.json` always available, independent of the UI
-- [ ] Swagger UI behind the default-on `swagger-ui` feature
+- [x] Swagger UI behind the default-on `swagger-ui` feature
 - [ ] Documented Postman import from the OpenAPI spec
 - [x] API-level golden tests pinning the spec
 

@@ -41,18 +41,30 @@ impl AppState {
 /// the request tracing layer.
 pub fn build_router(state: AppState) -> Router {
     let (router, api) = build_parts();
-    router
-        .route(
-            "/openapi.json",
-            axum::routing::get(move || {
-                let api = api.clone();
-                async move { axum::Json(api) }
-            }),
-        )
+
+    let router = router
         .fallback(error::not_found)
         .method_not_allowed_fallback(error::method_not_allowed)
         .layer(TraceLayer::new_for_http())
-        .with_state(state)
+        .with_state(state);
+
+    with_api_docs(router, api)
+}
+
+#[cfg(feature = "swagger-ui")]
+fn with_api_docs(router: Router, api: utoipa::openapi::OpenApi) -> Router {
+    router.merge(utoipa_swagger_ui::SwaggerUi::new("/swagger-ui").url("/openapi.json", api))
+}
+
+#[cfg(not(feature = "swagger-ui"))]
+fn with_api_docs(router: Router, api: utoipa::openapi::OpenApi) -> Router {
+    router.route(
+        "/openapi.json",
+        axum::routing::get(move || {
+            let api = api.clone();
+            async move { axum::Json(api) }
+        }),
+    )
 }
 
 fn build_parts() -> (Router<AppState>, utoipa::openapi::OpenApi) {
