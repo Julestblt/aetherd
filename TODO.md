@@ -57,7 +57,7 @@ Status legend: `[x]` done and tested, `[ ]` not started, `[~]` partially done.
 - [x] Compile-time generated OpenAPI from Rust types
 - [x] `/openapi.json` always available, independent of the UI
 - [x] Swagger UI behind the default-on `swagger-ui` feature
-- [ ] Documented Postman import from the OpenAPI spec
+- [x] Documented Postman import from the OpenAPI spec
 - [x] API-level golden tests pinning the spec
 
 ## 5. AI usage providers
@@ -100,10 +100,10 @@ Status legend: `[x]` done and tested, `[ ]` not started, `[~]` partially done.
 
 ## 10. Documentation
 
-- [ ] `README.md` describing status, usage, and configuration
+- [x] `README.md` describing status, usage, and configuration
 - [x] `docs/architecture.md`
-- [ ] `docs/api.md` including Postman import
-- [ ] `docs/configuration.md`
+- [x] `docs/api.md` including Postman import
+- [x] `docs/configuration.md`
 - [ ] Deployment guide for common reverse proxies
 
 ## 11. Continuous integration
