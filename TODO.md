@@ -12,9 +12,9 @@ Status legend: `[x]` done and tested, `[ ]` not started, `[~]` partially done.
 - [x] Pin edition 2024 and MSRV 1.88; record posture in `docs/agents/rust.md`
 - [x] Configure rustfmt, clippy, and rustc lint levels
 - [x] Establish architecture and agent instructions (`AGENTS.md`)
-- [ ] Optional TOML configuration layered with `AETHERD_` environment variables
-- [ ] Structured `tracing` setup with `RUST_LOG` filtering
-- [ ] Graceful shutdown on SIGINT/SIGTERM
+- [x] Optional TOML configuration layered with `AETHERD_` environment variables
+- [x] Structured `tracing` setup with `RUST_LOG` filtering
+- [x] Graceful shutdown on SIGINT/SIGTERM
 
 ## 2. System telemetry collectors
 
@@ -49,6 +49,8 @@ Status legend: `[x]` done and tested, `[ ]` not started, `[~]` partially done.
 - [ ] Consistent units and RFC3339 UTC timestamps documented in schemas
 - [ ] Optional authentication for exposed deployments
 - [ ] Request rate limiting
+- [ ] Request timeout with a structured error body
+- [ ] Reject unknown `AETHERD_` environment variables with a clear message (currently rejected by serde)
 
 ## 4. OpenAPI documentation
 
@@ -81,7 +83,7 @@ Status legend: `[x]` done and tested, `[ ]` not started, `[~]` partially done.
 
 ## 7. Observability and security
 
-- [ ] Structured request tracing with latency and status
+- [x] Structured request tracing with latency and status
 - [ ] No secret logging; redacting `SecretString` type
 - [ ] Prometheus metrics endpoint
 - [ ] Optional API authentication and TLS termination guidance

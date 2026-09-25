@@ -1,5 +1,6 @@
 use axum::Router;
 use time::OffsetDateTime;
+use tower_http::trace::TraceLayer;
 use utoipa::OpenApi;
 use utoipa_axum::router::OpenApiRouter;
 use utoipa_axum::routes;
@@ -28,7 +29,8 @@ impl Default for AppState {
     }
 }
 
-/// Builds the complete HTTP router, including the `OpenAPI` document route.
+/// Builds the complete HTTP router, including the `OpenAPI` document route and
+/// the request tracing layer.
 pub fn build_router(state: AppState) -> Router {
     let (router, api) = build_parts();
     router
@@ -40,6 +42,7 @@ pub fn build_router(state: AppState) -> Router {
             }),
         )
         .fallback(error::not_found)
+        .layer(TraceLayer::new_for_http())
         .with_state(state)
 }
 

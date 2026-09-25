@@ -5,5 +5,7 @@
 
 mod api;
 mod app;
+mod config;
 
 pub use app::{AppState, build_router};
+pub use config::{Config, ConfigError, HttpConfig, PathsConfig, load as load_config};
