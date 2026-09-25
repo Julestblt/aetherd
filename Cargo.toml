@@ -1,0 +1,55 @@
+[package]
+name = "aetherd"
+version = "0.1.0"
+edition = "2024"
+rust-version = "1.88"
+description = "A lightweight daemon exposing a unified metrics API for Linux system telemetry and AI provider usage."
+license = "MIT OR Apache-2.0"
+repository = "https://github.com/Julestblt/aetherd"
+readme = "README.md"
+keywords = ["monitoring", "metrics", "telemetry", "daemon", "openapi"]
+categories = ["command-line-utilities", "web-programming::http-server"]
+
+[features]
+default = ["swagger-ui"]
+swagger-ui = ["dep:utoipa-swagger-ui"]
+
+[dependencies]
+axum = "0.8"
+figment = { version = "0.10", features = ["toml", "env"] }
+rustix = { version = "1", features = ["fs"] }
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+thiserror = "2"
+time = { version = "0.3", features = ["serde", "formatting", "parsing", "macros"] }
+tokio = { version = "1", features = ["rt-multi-thread", "macros", "net", "signal", "time"] }
+tower-http = { version = "0.7", features = ["trace", "timeout"] }
+tracing = "0.1"
+tracing-subscriber = { version = "0.3", features = ["env-filter", "fmt"] }
+utoipa = { version = "6", features = ["time"] }
+utoipa-axum = "0.3"
+utoipa-swagger-ui = { version = "10", features = ["axum", "vendored"], optional = true }
+
+[dev-dependencies]
+http-body-util = "0.1"
+insta = { version = "1", features = ["json"] }
+tower = { version = "0.5", features = ["util"] }
+
+[lints.rust]
+unsafe_op_in_unsafe_fn = "deny"
+missing_docs = "warn"
+missing_debug_implementations = "warn"
+unreachable_pub = "warn"
+rust_2018_idioms = { level = "warn", priority = -1 }
+
+[lints.clippy]
+undocumented_unsafe_blocks = "deny"
+missing_safety_doc = "deny"
+allow_attributes_without_reason = "deny"
+unwrap_used = "deny"
+expect_used = "deny"
+pedantic = { level = "warn", priority = -1 }
+missing_errors_doc = "allow"
+missing_panics_doc = "allow"
+must_use_candidate = "allow"
+module_name_repetitions = "allow"

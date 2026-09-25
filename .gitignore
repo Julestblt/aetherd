@@ -1,0 +1,13 @@
+/target
+**/*.rs.bk
+
+# Local configuration and secrets
+.env
+aetherd.local.toml
+aetherd.toml
+
+# Editors and OS
+.idea/
+.vscode/
+*.swp
+.DS_Store

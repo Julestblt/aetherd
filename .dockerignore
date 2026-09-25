@@ -1,0 +1,10 @@
+target
+.git
+.github
+.agents
+docs
+tests
+*.md
+.env
+aetherd.toml
+aetherd.local.toml
