@@ -22,6 +22,7 @@ use crate::system::{SystemCollector, SystemPaths};
 #[derive(Debug, Serialize, ToSchema)]
 pub(crate) struct SystemOverview {
     /// RFC3339 UTC timestamp of this response.
+    #[serde(with = "time::serde::rfc3339")]
     pub collected_at: OffsetDateTime,
     /// Host metadata.
     pub host: Section<HostMetrics>,

@@ -14,10 +14,12 @@ pub(crate) struct HealthResponse {
     /// Daemon version taken from the crate metadata.
     pub version: String,
     /// RFC3339 UTC timestamp of daemon start.
+    #[serde(with = "time::serde::rfc3339")]
     pub started_at: OffsetDateTime,
     /// Seconds elapsed since the daemon started.
     pub uptime_seconds: f64,
     /// RFC3339 UTC timestamp of this response.
+    #[serde(with = "time::serde::rfc3339")]
     pub collected_at: OffsetDateTime,
 }
 

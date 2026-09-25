@@ -24,6 +24,7 @@ pub(crate) struct HostMetrics {
     /// Parsed `/etc/os-release`, when present.
     pub os: Option<OsRelease>,
     /// System boot time, when reported.
+    #[serde(with = "time::serde::rfc3339::option")]
     pub boot_time: Option<OffsetDateTime>,
 }
 

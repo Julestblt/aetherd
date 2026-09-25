@@ -56,7 +56,11 @@ async fn host_returns_fixture_metadata() {
     assert_eq!(body["kernel_release"], "6.8.0-aetherd");
     assert_eq!(body["os"]["id"], "aetherd-test");
     assert_eq!(body["os"]["pretty_name"], "Aetherd Test Linux 1.0");
-    assert!(body["boot_time"].is_string());
+    let boot_time = body["boot_time"].as_str().expect("boot time is a string");
+    assert!(
+        boot_time.contains('T'),
+        "boot_time should be RFC3339, got {boot_time:?}"
+    );
 }
 
 #[tokio::test]
