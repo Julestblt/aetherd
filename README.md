@@ -122,6 +122,13 @@ read-only host mounts and no added capabilities.
 
 [`TODO.md`](TODO.md) is the canonical roadmap.
 
+## Releases
+
+Releases are tag-driven: pushing a `vX.Y.Z` tag verifies the tree, publishes a
+GitHub Release with a binary archive and checksums, and pushes a container image
+to GHCR. See [`CHANGELOG.md`](CHANGELOG.md) for released changes and
+[`RELEASING.md`](RELEASING.md) for the process.
+
 ## License
 
 Licensed under either of Apache License, Version 2.0 or MIT license at your

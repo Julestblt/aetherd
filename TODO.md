@@ -117,3 +117,13 @@ Status legend: `[x]` done and tested, `[ ]` not started, `[~]` partially done.
 
 - [x] Project-local skills for adding a collector, an endpoint, and a provider
 - [ ] Revisit skills when the provider domain lands
+
+## 13. Releases
+
+- [x] Tag-driven release workflow producing a GitHub Release with binary archive and checksums
+- [x] Container image published to GHCR on release
+- [x] `CHANGELOG.md` and `RELEASING.md` release process
+- [x] Release guards: crate version matches tag, changelog has the version
+- [ ] Multi-architecture release binaries
+- [ ] Signed release artifacts and container image provenance
+- [ ] Changelog generation from Conventional Commits
