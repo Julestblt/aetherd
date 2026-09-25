@@ -13,18 +13,23 @@ pub(crate) enum ApiError {
     /// The requested resource does not exist.
     #[error("resource not found")]
     NotFound,
+    /// A metric could not be collected on this host.
+    #[error("{0}")]
+    Unavailable(String),
 }
 
 impl ApiError {
     fn status(&self) -> StatusCode {
         match self {
             Self::NotFound => StatusCode::NOT_FOUND,
+            Self::Unavailable(_) => StatusCode::SERVICE_UNAVAILABLE,
         }
     }
 
     fn code(&self) -> ErrorCode {
         match self {
             Self::NotFound => ErrorCode::NotFound,
+            Self::Unavailable(_) => ErrorCode::Unavailable,
         }
     }
 }
@@ -68,4 +73,6 @@ pub(crate) struct ErrorDetail {
 pub(crate) enum ErrorCode {
     /// The requested resource does not exist.
     NotFound,
+    /// A metric is not available on this host.
+    Unavailable,
 }

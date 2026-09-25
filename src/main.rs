@@ -57,25 +57,25 @@ fn init_tracing() {
 }
 
 async fn run(config_path: Option<PathBuf>) -> Result<(), StartupError> {
-    let config = aetherd::load_config(config_path.as_deref())?;
+    let aetherd::Config { http, paths } = aetherd::load_config(config_path.as_deref())?;
 
     tracing::info!(
-        bind = %config.http.bind,
-        proc = %config.paths.proc.display(),
-        sys = %config.paths.sys.display(),
-        host_root = %config.paths.host_root.display(),
+        bind = %http.bind,
+        proc = %paths.proc.display(),
+        sys = %paths.sys.display(),
+        host_root = %paths.host_root.display(),
         "configuration loaded"
     );
 
-    let app = aetherd::build_router(aetherd::AppState::new());
-    let listener = TcpListener::bind(config.http.bind)
+    let app = aetherd::build_router(aetherd::AppState::new(paths.into()));
+    let listener = TcpListener::bind(http.bind)
         .await
         .map_err(|source| StartupError::Bind {
-            addr: config.http.bind,
+            addr: http.bind,
             source,
         })?;
 
-    tracing::info!(address = %config.http.bind, "aetherd listening");
+    tracing::info!(address = %http.bind, "aetherd listening");
 
     axum::serve(listener, app)
         .with_graceful_shutdown(shutdown_signal())

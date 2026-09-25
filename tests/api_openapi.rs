@@ -11,6 +11,10 @@ async fn openapi_documents_health_path_and_schema() {
     assert_eq!(status, StatusCode::OK);
     assert_eq!(body["info"]["title"], "aetherd API");
     assert!(body["paths"]["/health"].is_object());
+    assert!(body["paths"]["/v1/system/cpu"].is_object());
+    assert!(body["paths"]["/v1/system/memory"].is_object());
     assert!(body["components"]["schemas"]["HealthResponse"].is_object());
+    assert!(body["components"]["schemas"]["CpuMetrics"].is_object());
+    assert!(body["components"]["schemas"]["MemoryMetrics"].is_object());
     assert!(body["components"]["schemas"]["ErrorResponse"].is_object());
 }

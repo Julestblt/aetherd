@@ -5,27 +5,25 @@ use utoipa::OpenApi;
 use utoipa_axum::router::OpenApiRouter;
 use utoipa_axum::routes;
 
-use crate::api::{ApiDoc, error, health};
+use crate::api::{ApiDoc, error, health, system as system_api};
+use crate::system::SystemPaths;
 
 /// Shared state handed to every request handler.
 #[derive(Clone, Debug)]
 pub struct AppState {
     pub(crate) started_at: OffsetDateTime,
+    pub(crate) paths: SystemPaths,
 }
 
 impl AppState {
-    /// Creates application state with the daemon start time set to now.
+    /// Creates application state with the daemon start time set to now and the
+    /// given telemetry roots.
     #[must_use]
-    pub fn new() -> Self {
+    pub fn new(paths: SystemPaths) -> Self {
         Self {
             started_at: OffsetDateTime::now_utc(),
+            paths,
         }
-    }
-}
-
-impl Default for AppState {
-    fn default() -> Self {
-        Self::new()
     }
 }
 
@@ -47,7 +45,12 @@ pub fn build_router(state: AppState) -> Router {
 }
 
 fn build_parts() -> (Router<AppState>, utoipa::openapi::OpenApi) {
+    let system = OpenApiRouter::new()
+        .routes(routes!(system_api::cpu))
+        .routes(routes!(system_api::memory));
+
     OpenApiRouter::with_openapi(ApiDoc::openapi())
         .routes(routes!(health::health))
+        .nest("/v1/system", system)
         .split_for_parts()
 }

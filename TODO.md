@@ -19,8 +19,8 @@ Status legend: `[x]` done and tested, `[ ]` not started, `[~]` partially done.
 ## 2. System telemetry collectors
 
 - [ ] Host information (hostname, OS, kernel, architecture, boot time)
-- [ ] CPU times and since-boot utilization from `/proc/stat`
-- [ ] Memory and swap from `/proc/meminfo`
+- [x] CPU times and since-boot utilization from `/proc/stat`
+- [x] Memory and swap from `/proc/meminfo`
 - [ ] Load average and process counts from `/proc/loadavg`
 - [ ] Uptime and idle time from `/proc/uptime`
 - [ ] Filesystems and usage from `/proc/mounts` + `statvfs`
@@ -35,12 +35,12 @@ Status legend: `[x]` done and tested, `[ ]` not started, `[~]` partially done.
 
 ## 3. API
 
-- [ ] Versioned `/v1` route structure
+- [x] Versioned `/v1` route structure
 - [x] `GET /health` liveness endpoint
 - [ ] `GET /v1/system` aggregated overview with partial-data handling
 - [ ] `GET /v1/system/host`
-- [ ] `GET /v1/system/cpu`
-- [ ] `GET /v1/system/memory`
+- [x] `GET /v1/system/cpu`
+- [x] `GET /v1/system/memory`
 - [ ] `GET /v1/system/load`
 - [ ] `GET /v1/system/uptime`
 - [ ] `GET /v1/system/disks` with explicit pseudo-filesystem filtering
@@ -93,7 +93,7 @@ Status legend: `[x]` done and tested, `[ ]` not started, `[~]` partially done.
 
 - [ ] Unit tests for every parser (valid, malformed, missing, partial)
 - [x] Integration tests over the Axum router without a live server
-- [ ] Deterministic fixtures via configurable filesystem roots
+- [x] Deterministic fixtures via configurable filesystem roots
 - [x] HTTP status code and error schema regression coverage
 - [ ] Property tests for parsers with wide input spaces
 - [ ] API response snapshot tests for contract stability
