@@ -16,6 +16,11 @@ async fn openapi_documents_health_path_and_schema() {
     assert!(body["paths"]["/v1/system/memory"].is_object());
     assert!(body["paths"]["/v1/system/disks"].is_object());
     assert!(body["paths"]["/v1/system/network"].is_object());
+    assert!(body["paths"]["/v1/system/stream"].is_object());
+    assert!(
+        body["paths"].get("/cpu").is_none(),
+        "unprefixed system paths must not be advertised"
+    );
     assert!(body["components"]["schemas"]["HealthResponse"].is_object());
     assert!(body["components"]["schemas"]["CpuMetrics"].is_object());
     assert!(body["components"]["schemas"]["MemoryMetrics"].is_object());

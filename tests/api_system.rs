@@ -5,8 +5,9 @@ mod common;
 use std::sync::Arc;
 
 use axum::http::StatusCode;
+use time::Duration as TimeDuration;
 
-use aetherd::SystemPaths;
+use aetherd::{MountStats, SnapshotBuilder, SystemPaths};
 
 #[tokio::test]
 async fn cpu_returns_metrics_from_fixture() {
@@ -189,4 +190,46 @@ async fn overview_marks_unavailable_sections_without_failing() {
     assert!(body["cpu"]["reason"].is_string());
     assert_eq!(body["host"]["status"], "available");
     assert_eq!(body["host"]["value"]["hostname"], serde_json::Value::Null);
+}
+
+#[tokio::test]
+async fn overview_is_not_ready_before_the_first_snapshot() {
+    let state = common::unpublished_state(
+        common::fixture_paths(),
+        Arc::new(common::FakeMountStats::default()),
+    );
+    let (status, body) = common::get_for(aetherd::build_router(state), "/v1/system").await;
+
+    assert_eq!(status, StatusCode::SERVICE_UNAVAILABLE);
+    assert_eq!(body["error"]["code"], "not_ready");
+}
+
+#[tokio::test]
+async fn metric_is_not_ready_before_the_first_snapshot() {
+    let state = common::unpublished_state(
+        common::fixture_paths(),
+        Arc::new(common::FakeMountStats::default()),
+    );
+    let (status, body) = common::get_for(aetherd::build_router(state), "/v1/system/cpu").await;
+
+    assert_eq!(status, StatusCode::SERVICE_UNAVAILABLE);
+    assert_eq!(body["error"]["code"], "not_ready");
+}
+
+#[tokio::test]
+async fn rest_serves_the_latest_published_snapshot() {
+    let paths = common::fixture_paths();
+    let mount_stats: Arc<dyn MountStats> = Arc::new(common::FakeMountStats::default());
+    let state = common::state_with_mount_stats(paths.clone(), Arc::clone(&mount_stats));
+    let router = aetherd::build_router(state.clone());
+
+    let (_, body) = common::get_for(router.clone(), "/v1/system").await;
+    assert_eq!(body["collected_at"], "2023-11-14T22:13:20Z");
+
+    let newer = SnapshotBuilder::new(paths, mount_stats)
+        .collect(common::sample_time() + TimeDuration::seconds(10));
+    state.publish(newer);
+
+    let (_, body) = common::get_for(router, "/v1/system").await;
+    assert_eq!(body["collected_at"], "2023-11-14T22:13:30Z");
 }

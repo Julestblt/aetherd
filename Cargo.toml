@@ -37,6 +37,7 @@ figment = { version = "0.10", features = ["test"] }
 http-body-util = "0.1"
 insta = { version = "1", features = ["json"] }
 time = "0.3"
+tokio = { version = "1", features = ["test-util"] }
 tower = { version = "0.5", features = ["util"] }
 
 [lints.rust]

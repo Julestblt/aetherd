@@ -79,6 +79,10 @@ pub(crate) fn state_with(paths: SystemPaths) -> AppState {
     state_with_mount_stats(paths, Arc::new(FakeMountStats::default()))
 }
 
+pub(crate) fn unpublished_state(paths: SystemPaths, mount_stats: Arc<dyn MountStats>) -> AppState {
+    AppState::with_mount_stats(paths, mount_stats)
+}
+
 pub(crate) fn app() -> Router {
     app_with(fixture_paths())
 }
@@ -156,4 +160,41 @@ pub(crate) async fn get_text(uri: &str) -> (StatusCode, Option<String>, String) 
         content_type,
         String::from_utf8_lossy(&bytes).into_owned(),
     )
+}
+
+pub(crate) async fn open_stream(router: Router, uri: &str) -> (StatusCode, Option<String>, Body) {
+    let response = router
+        .oneshot(
+            Request::builder()
+                .uri(uri)
+                .body(Body::empty())
+                .expect("valid request"),
+        )
+        .await
+        .expect("router responds");
+    let status = response.status();
+    let content_type = response
+        .headers()
+        .get(axum::http::header::CONTENT_TYPE)
+        .and_then(|value| value.to_str().ok())
+        .map(str::to_owned);
+    (status, content_type, response.into_body())
+}
+
+pub(crate) async fn next_chunk(body: &mut Body) -> Option<String> {
+    let frame = body.frame().await?;
+    let frame = frame.ok()?;
+    let data = frame.into_data().ok()?;
+    Some(String::from_utf8_lossy(&data).into_owned())
+}
+
+pub(crate) async fn next_event(body: &mut Body) -> Option<String> {
+    let mut buffer = String::new();
+    loop {
+        let chunk = next_chunk(body).await?;
+        buffer.push_str(&chunk);
+        if buffer.contains("\n\n") {
+            return Some(buffer);
+        }
+    }
 }
