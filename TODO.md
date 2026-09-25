@@ -37,7 +37,7 @@ Status legend: `[x]` done and tested, `[ ]` not started, `[~]` partially done.
 
 - [x] Versioned `/v1` route structure
 - [x] `GET /health` liveness endpoint
-- [ ] `GET /v1/system` aggregated overview with partial-data handling
+- [x] `GET /v1/system` aggregated overview with partial-data handling
 - [x] `GET /v1/system/host`
 - [x] `GET /v1/system/cpu`
 - [x] `GET /v1/system/memory`
@@ -46,7 +46,7 @@ Status legend: `[x]` done and tested, `[ ]` not started, `[~]` partially done.
 - [x] `GET /v1/system/disks` with explicit pseudo-filesystem filtering
 - [x] `GET /v1/system/network`
 - [x] Machine-readable, consistent error schema
-- [ ] Consistent units and RFC3339 UTC timestamps documented in schemas
+- [x] Consistent units and RFC3339 UTC timestamps documented in schemas
 - [ ] Optional authentication for exposed deployments
 - [ ] Request rate limiting
 - [ ] Request timeout with a structured error body
@@ -91,7 +91,7 @@ Status legend: `[x]` done and tested, `[ ]` not started, `[~]` partially done.
 
 ## 8. Testing
 
-- [ ] Unit tests for every parser (valid, malformed, missing, partial)
+- [x] Unit tests for every parser (valid, malformed, missing, partial)
 - [x] Integration tests over the Axum router without a live server
 - [x] Deterministic fixtures via configurable filesystem roots
 - [x] HTTP status code and error schema regression coverage

@@ -2,8 +2,12 @@ use std::sync::Arc;
 
 use axum::Json;
 use axum::extract::State;
+use serde::Serialize;
+use time::OffsetDateTime;
+use utoipa::ToSchema;
 
 use crate::api::error::{ApiError, ErrorResponse};
+use crate::api::section::Section;
 use crate::app::AppState;
 use crate::system::cpu::{CpuCollector, CpuMetrics};
 use crate::system::disks::{DiskCollector, DisksMetrics};
@@ -13,6 +17,53 @@ use crate::system::memory::{MemoryCollector, MemoryMetrics};
 use crate::system::network::{NetworkCollector, NetworkMetrics};
 use crate::system::uptime::{UptimeCollector, UptimeMetrics};
 use crate::system::{SystemCollector, SystemPaths};
+
+/// Snapshot of every system section, each reporting its own availability.
+#[derive(Debug, Serialize, ToSchema)]
+pub(crate) struct SystemOverview {
+    /// RFC3339 UTC timestamp of this response.
+    pub collected_at: OffsetDateTime,
+    /// Host metadata.
+    pub host: Section<HostMetrics>,
+    /// CPU metrics.
+    pub cpu: Section<CpuMetrics>,
+    /// Memory metrics.
+    pub memory: Section<MemoryMetrics>,
+    /// Load average.
+    pub load: Section<LoadMetrics>,
+    /// System uptime.
+    pub uptime: Section<UptimeMetrics>,
+    /// Filesystem metrics.
+    pub disks: Section<DisksMetrics>,
+    /// Network metrics.
+    pub network: Section<NetworkMetrics>,
+}
+
+#[utoipa::path(
+    get,
+    path = "/",
+    tag = "system",
+    responses((
+        status = 200,
+        description = "System overview; every section reports its own availability",
+        body = SystemOverview
+    ))
+)]
+pub(crate) async fn overview(State(state): State<AppState>) -> Json<SystemOverview> {
+    let paths = &state.paths;
+    let disks = DiskCollector::new(Arc::clone(&state.mount_stats));
+
+    Json(SystemOverview {
+        collected_at: OffsetDateTime::now_utc(),
+        host: probe_section(&HostCollector, paths),
+        cpu: probe_section(&CpuCollector, paths),
+        memory: probe_section(&MemoryCollector, paths),
+        load: probe_section(&LoadCollector, paths),
+        uptime: probe_section(&UptimeCollector, paths),
+        disks: probe_section(&disks, paths),
+        network: probe_section(&NetworkCollector, paths),
+    })
+}
 
 #[utoipa::path(
     get,
@@ -110,4 +161,20 @@ fn probe<C: SystemCollector>(collector: &C, paths: &SystemPaths) -> Result<C::Me
         tracing::warn!(collector = collector.name(), error = %error, "collector failed");
         ApiError::Unavailable(error.to_string())
     })
+}
+
+fn probe_section<C: SystemCollector>(collector: &C, paths: &SystemPaths) -> Section<C::Metric> {
+    match collector.collect(paths) {
+        Ok(value) => Section::Available { value },
+        Err(error) => {
+            tracing::warn!(
+                collector = collector.name(),
+                error = %error,
+                "collector unavailable in overview"
+            );
+            Section::Unavailable {
+                reason: error.to_string(),
+            }
+        }
+    }
 }

@@ -152,3 +152,37 @@ async fn network_is_unavailable_when_dev_is_missing() {
     assert_eq!(status, StatusCode::SERVICE_UNAVAILABLE);
     assert_eq!(body["error"]["code"], "unavailable");
 }
+
+#[tokio::test]
+async fn overview_reports_every_section_from_fixtures() {
+    let (status, body) = common::get("/v1/system").await;
+
+    assert_eq!(status, StatusCode::OK);
+    for section in [
+        "host", "cpu", "memory", "load", "uptime", "disks", "network",
+    ] {
+        assert_eq!(
+            body[section]["status"], "available",
+            "section {section} should be available"
+        );
+    }
+    assert_eq!(body["host"]["value"]["hostname"], "aetherd-test-host");
+    assert_eq!(
+        body["disks"]["value"]["filesystems"]
+            .as_array()
+            .map(Vec::len),
+        Some(2)
+    );
+}
+
+#[tokio::test]
+async fn overview_marks_unavailable_sections_without_failing() {
+    let paths = SystemPaths::new("/nonexistent/proc", "/nonexistent/sys", "/nonexistent/root");
+    let (status, body) = common::get_for(common::app_with(paths), "/v1/system").await;
+
+    assert_eq!(status, StatusCode::OK);
+    assert_eq!(body["cpu"]["status"], "unavailable");
+    assert!(body["cpu"]["reason"].is_string());
+    assert_eq!(body["host"]["status"], "available");
+    assert_eq!(body["host"]["value"]["hostname"], serde_json::Value::Null);
+}
