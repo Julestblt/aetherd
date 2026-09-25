@@ -57,17 +57,25 @@ fn init_tracing() {
 }
 
 async fn run(config_path: Option<PathBuf>) -> Result<(), StartupError> {
-    let aetherd::Config { http, paths } = aetherd::load_config(config_path.as_deref())?;
+    let aetherd::Config {
+        http,
+        paths,
+        sampling,
+    } = aetherd::load_config(config_path.as_deref())?;
 
     tracing::info!(
         bind = %http.bind,
         proc = %paths.proc.display(),
         sys = %paths.sys.display(),
         host_root = %paths.host_root.display(),
+        sampling_interval_ms = sampling.interval_ms,
         "configuration loaded"
     );
 
-    let app = aetherd::build_router(aetherd::AppState::new(paths.into()));
+    let state = aetherd::AppState::with_sampling(paths.into(), sampling);
+    let app = aetherd::build_router(state.clone());
+    let sampler = aetherd::spawn_sampler(&state);
+
     let listener = TcpListener::bind(http.bind)
         .await
         .map_err(|source| StartupError::Bind {
@@ -77,10 +85,20 @@ async fn run(config_path: Option<PathBuf>) -> Result<(), StartupError> {
 
     tracing::info!(address = %http.bind, "aetherd listening");
 
-    axum::serve(listener, app)
-        .with_graceful_shutdown(shutdown_signal())
-        .await
-        .map_err(StartupError::Serve)?;
+    let shutdown_state = state.clone();
+    let serve_result = axum::serve(listener, app)
+        .with_graceful_shutdown(async move {
+            shutdown_signal().await;
+            shutdown_state.shutdown();
+        })
+        .await;
+
+    state.shutdown();
+    if let Err(error) = sampler.await {
+        tracing::warn!(error = %error, "sampler task failed");
+    }
+
+    serve_result.map_err(StartupError::Serve)?;
 
     tracing::info!("aetherd stopped");
     Ok(())

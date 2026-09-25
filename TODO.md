@@ -25,7 +25,10 @@ Status legend: `[x]` done and tested, `[ ]` not started, `[~]` partially done.
 - [x] Uptime and idle time from `/proc/uptime`
 - [x] Filesystems and usage from `/proc/mounts` + `statvfs`
 - [x] Network interface RX/TX from `/proc/net/dev`
-- [ ] Interval-based CPU sampling (next improvement on top of since-boot)
+- [x] Background snapshot sampling runtime with a configurable interval
+- [x] In-memory latest-snapshot cache shared by REST and streaming
+- [ ] Interval-based CPU sampling derived from consecutive `/proc/stat` samples
+- [ ] Network throughput rates derived from counter deltas
 - [ ] Disk I/O from `/proc/diskstats`
 - [ ] Temperatures from `/sys/class/hwmon` and `/sys/class/thermal`
 - [ ] Per-core and per-NUMA CPU breakdown
@@ -45,6 +48,7 @@ Status legend: `[x]` done and tested, `[ ]` not started, `[~]` partially done.
 - [x] `GET /v1/system/uptime`
 - [x] `GET /v1/system/disks` with explicit pseudo-filesystem filtering
 - [x] `GET /v1/system/network`
+- [ ] `GET /v1/system/stream` Server-Sent Events live stream
 - [x] Machine-readable, consistent error schema
 - [x] Consistent units and RFC3339 UTC timestamps documented in schemas
 - [ ] Optional authentication for exposed deployments

@@ -7,8 +7,8 @@ use time::OffsetDateTime;
 use utoipa::ToSchema;
 
 use crate::api::error::{ApiError, ErrorResponse};
-use crate::api::section::Section;
 use crate::app::AppState;
+use crate::sampling::Section;
 use crate::system::cpu::{CpuCollector, CpuMetrics};
 use crate::system::disks::{DiskCollector, DisksMetrics};
 use crate::system::host::{HostCollector, HostMetrics};

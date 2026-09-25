@@ -604,7 +604,7 @@ expression: body
         "type": "object"
       },
       "Section_CpuMetrics": {
-        "description": "A metric that may or may not be available on the current host.\n\nThe aggregate overview uses this so a single failing collector never fails\nthe whole response.",
+        "description": "A metric that may or may not be available on the current host.\n\nAggregated responses use this so a single failing collector never fails the\nwhole payload.",
         "oneOf": [
           {
             "description": "The metric was collected.",
@@ -672,7 +672,7 @@ expression: body
         ]
       },
       "Section_DisksMetrics": {
-        "description": "A metric that may or may not be available on the current host.\n\nThe aggregate overview uses this so a single failing collector never fails\nthe whole response.",
+        "description": "A metric that may or may not be available on the current host.\n\nAggregated responses use this so a single failing collector never fails the\nwhole payload.",
         "oneOf": [
           {
             "description": "The metric was collected.",
@@ -729,7 +729,7 @@ expression: body
         ]
       },
       "Section_HostMetrics": {
-        "description": "A metric that may or may not be available on the current host.\n\nThe aggregate overview uses this so a single failing collector never fails\nthe whole response.",
+        "description": "A metric that may or may not be available on the current host.\n\nAggregated responses use this so a single failing collector never fails the\nwhole payload.",
         "oneOf": [
           {
             "description": "The metric was collected.",
@@ -823,7 +823,7 @@ expression: body
         ]
       },
       "Section_LoadMetrics": {
-        "description": "A metric that may or may not be available on the current host.\n\nThe aggregate overview uses this so a single failing collector never fails\nthe whole response.",
+        "description": "A metric that may or may not be available on the current host.\n\nAggregated responses use this so a single failing collector never fails the\nwhole payload.",
         "oneOf": [
           {
             "description": "The metric was collected.",
@@ -911,7 +911,7 @@ expression: body
         ]
       },
       "Section_MemoryMetrics": {
-        "description": "A metric that may or may not be available on the current host.\n\nThe aggregate overview uses this so a single failing collector never fails\nthe whole response.",
+        "description": "A metric that may or may not be available on the current host.\n\nAggregated responses use this so a single failing collector never fails the\nwhole payload.",
         "oneOf": [
           {
             "description": "The metric was collected.",
@@ -1025,7 +1025,7 @@ expression: body
         ]
       },
       "Section_NetworkMetrics": {
-        "description": "A metric that may or may not be available on the current host.\n\nThe aggregate overview uses this so a single failing collector never fails\nthe whole response.",
+        "description": "A metric that may or may not be available on the current host.\n\nAggregated responses use this so a single failing collector never fails the\nwhole payload.",
         "oneOf": [
           {
             "description": "The metric was collected.",
@@ -1082,7 +1082,7 @@ expression: body
         ]
       },
       "Section_UptimeMetrics": {
-        "description": "A metric that may or may not be available on the current host.\n\nThe aggregate overview uses this so a single failing collector never fails\nthe whole response.",
+        "description": "A metric that may or may not be available on the current host.\n\nAggregated responses use this so a single failing collector never fails the\nwhole payload.",
         "oneOf": [
           {
             "description": "The metric was collected.",

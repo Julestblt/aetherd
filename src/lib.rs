@@ -6,8 +6,12 @@
 mod api;
 mod app;
 mod config;
+mod sampling;
 mod system;
 
 pub use app::{AppState, build_router};
-pub use config::{Config, ConfigError, HttpConfig, PathsConfig, load as load_config};
+pub use config::{
+    Config, ConfigError, HttpConfig, PathsConfig, SamplingConfig, load as load_config,
+};
+pub use sampling::{SnapshotBuilder, SystemSnapshot, spawn_sampler};
 pub use system::{DiskUsage, MountStats, SystemPaths};

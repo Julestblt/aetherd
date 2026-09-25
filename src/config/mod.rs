@@ -1,5 +1,6 @@
 use std::net::SocketAddr;
 use std::path::{Path, PathBuf};
+use std::time::Duration;
 
 use figment::Figment;
 use figment::providers::{Env, Format, Serialized, Toml};
@@ -19,6 +20,8 @@ pub struct Config {
     pub http: HttpConfig,
     /// Host filesystem roots used by telemetry collectors.
     pub paths: PathsConfig,
+    /// Background sampling settings.
+    pub sampling: SamplingConfig,
 }
 
 /// HTTP server configuration.
@@ -62,6 +65,45 @@ impl Default for PathsConfig {
     }
 }
 
+/// Background telemetry sampling configuration.
+#[derive(Clone, Copy, Debug, Deserialize, Serialize, PartialEq, Eq)]
+#[serde(default, deny_unknown_fields)]
+pub struct SamplingConfig {
+    /// Interval between samples, in milliseconds.
+    pub interval_ms: u64,
+}
+
+impl SamplingConfig {
+    /// Smallest accepted interval, in milliseconds.
+    pub const MIN_INTERVAL_MS: u64 = 100;
+    /// Largest accepted interval, in milliseconds.
+    pub const MAX_INTERVAL_MS: u64 = 3_600_000;
+
+    /// Returns the sampling interval as a [`Duration`].
+    #[must_use]
+    pub fn interval(&self) -> Duration {
+        Duration::from_millis(self.interval_ms)
+    }
+
+    fn validate(self) -> Result<(), ConfigError> {
+        if (Self::MIN_INTERVAL_MS..=Self::MAX_INTERVAL_MS).contains(&self.interval_ms) {
+            Ok(())
+        } else {
+            Err(ConfigError::InvalidSamplingInterval {
+                value: self.interval_ms,
+                min: Self::MIN_INTERVAL_MS,
+                max: Self::MAX_INTERVAL_MS,
+            })
+        }
+    }
+}
+
+impl Default for SamplingConfig {
+    fn default() -> Self {
+        Self { interval_ms: 1000 }
+    }
+}
+
 /// Failures that can occur while loading configuration.
 #[derive(Debug, thiserror::Error)]
 pub enum ConfigError {
@@ -74,6 +116,16 @@ pub enum ConfigError {
     /// The layered configuration could not be extracted into [`Config`].
     #[error("invalid configuration")]
     Invalid(#[source] Box<figment::Error>),
+    /// The sampling interval is outside the accepted range.
+    #[error("sampling.interval_ms must be between {min} and {max} milliseconds, got {value}")]
+    InvalidSamplingInterval {
+        /// The rejected value.
+        value: u64,
+        /// Inclusive lower bound.
+        min: u64,
+        /// Inclusive upper bound.
+        max: u64,
+    },
 }
 
 /// Loads configuration from defaults, an optional TOML file, and environment
@@ -101,6 +153,10 @@ pub fn load(explicit_path: Option<&Path>) -> Result<Config, ConfigError> {
         .merge(Env::prefixed(ENV_PREFIX).split("__"))
         .extract()
         .map_err(|error| ConfigError::Invalid(Box::new(error)))
+        .and_then(|config: Config| {
+            config.sampling.validate()?;
+            Ok(config)
+        })
 }
 
 #[cfg(test)]
@@ -119,6 +175,41 @@ mod tests {
         assert_eq!(config.paths.proc, PathBuf::from("/proc"));
         assert_eq!(config.paths.sys, PathBuf::from("/sys"));
         assert_eq!(config.paths.host_root, PathBuf::from("/"));
+        assert_eq!(config.sampling.interval_ms, 1000);
+    }
+
+    #[test]
+    fn sampling_interval_converts_to_duration() {
+        let sampling = SamplingConfig { interval_ms: 2500 };
+        assert_eq!(sampling.interval(), Duration::from_millis(2500));
+    }
+
+    #[test]
+    fn sampling_interval_accepts_range_boundaries() {
+        let min = SamplingConfig {
+            interval_ms: SamplingConfig::MIN_INTERVAL_MS,
+        };
+        let max = SamplingConfig {
+            interval_ms: SamplingConfig::MAX_INTERVAL_MS,
+        };
+        assert!(min.validate().is_ok());
+        assert!(max.validate().is_ok());
+    }
+
+    #[test]
+    fn sampling_interval_rejects_invalid_values() {
+        let below = SamplingConfig {
+            interval_ms: SamplingConfig::MIN_INTERVAL_MS - 1,
+        };
+        let above = SamplingConfig {
+            interval_ms: SamplingConfig::MAX_INTERVAL_MS + 1,
+        };
+        let zero = SamplingConfig { interval_ms: 0 };
+
+        for sampling in [below, above, zero] {
+            let error = sampling.validate().expect_err("interval must be rejected");
+            assert!(matches!(error, ConfigError::InvalidSamplingInterval { .. }));
+        }
     }
 
     #[test]
@@ -157,6 +248,20 @@ mod tests {
             let config = load(None).expect("env layer loads");
             assert_eq!(config.http.bind, SocketAddr::from(([0, 0, 0, 0], 9000)));
             assert_eq!(config.paths.host_root, PathBuf::from("/host/root"));
+            Ok(())
+        });
+    }
+
+    #[test]
+    fn sampling_interval_is_configurable_and_validated() {
+        Jail::expect_with(|jail| {
+            jail.set_env("AETHERD_SAMPLING__INTERVAL_MS", "250");
+            let config = load(None).expect("valid interval loads");
+            assert_eq!(config.sampling.interval_ms, 250);
+
+            jail.set_env("AETHERD_SAMPLING__INTERVAL_MS", "5");
+            let error = load(None).expect_err("too small interval must fail");
+            assert!(matches!(error, ConfigError::InvalidSamplingInterval { .. }));
             Ok(())
         });
     }
