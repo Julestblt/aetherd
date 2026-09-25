@@ -1,14 +1,18 @@
 //! Linux telemetry domain: typed metrics and `/proc`, `/sys` parsers.
 
 pub(crate) mod cpu;
+pub(crate) mod disks;
 pub(crate) mod host;
 pub(crate) mod load;
 pub(crate) mod memory;
+pub(crate) mod network;
 mod paths;
 pub(crate) mod uptime;
 
 use std::path::PathBuf;
 
+pub(crate) use disks::RealMountStats;
+pub use disks::{DiskUsage, MountStats};
 pub use paths::SystemPaths;
 
 /// Errors produced while collecting a metric.

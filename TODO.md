@@ -23,8 +23,8 @@ Status legend: `[x]` done and tested, `[ ]` not started, `[~]` partially done.
 - [x] Memory and swap from `/proc/meminfo`
 - [x] Load average and process counts from `/proc/loadavg`
 - [x] Uptime and idle time from `/proc/uptime`
-- [ ] Filesystems and usage from `/proc/mounts` + `statvfs`
-- [ ] Network interface RX/TX from `/proc/net/dev`
+- [x] Filesystems and usage from `/proc/mounts` + `statvfs`
+- [x] Network interface RX/TX from `/proc/net/dev`
 - [ ] Interval-based CPU sampling (next improvement on top of since-boot)
 - [ ] Disk I/O from `/proc/diskstats`
 - [ ] Temperatures from `/sys/class/hwmon` and `/sys/class/thermal`
@@ -43,8 +43,8 @@ Status legend: `[x]` done and tested, `[ ]` not started, `[~]` partially done.
 - [x] `GET /v1/system/memory`
 - [x] `GET /v1/system/load`
 - [x] `GET /v1/system/uptime`
-- [ ] `GET /v1/system/disks` with explicit pseudo-filesystem filtering
-- [ ] `GET /v1/system/network`
+- [x] `GET /v1/system/disks` with explicit pseudo-filesystem filtering
+- [x] `GET /v1/system/network`
 - [x] Machine-readable, consistent error schema
 - [ ] Consistent units and RFC3339 UTC timestamps documented in schemas
 - [ ] Optional authentication for exposed deployments

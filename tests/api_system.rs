@@ -2,6 +2,8 @@
 
 mod common;
 
+use std::sync::Arc;
+
 use axum::http::StatusCode;
 
 use aetherd::SystemPaths;
@@ -94,4 +96,59 @@ async fn host_tolerates_missing_metadata() {
     assert_eq!(body["hostname"], serde_json::Value::Null);
     assert_eq!(body["os"], serde_json::Value::Null);
     assert!(body["architecture"].is_string());
+}
+
+#[tokio::test]
+async fn disks_exclude_pseudo_filesystems() {
+    let (status, body) = common::get("/v1/system/disks").await;
+
+    assert_eq!(status, StatusCode::OK);
+    let filesystems = body["filesystems"].as_array().expect("filesystems array");
+    assert_eq!(filesystems.len(), 2);
+    assert_eq!(filesystems[0]["mount_point"], "/");
+    assert_eq!(filesystems[1]["mount_point"], "/data volume");
+    assert_eq!(filesystems[0]["usage"]["total_bytes"], 1000);
+}
+
+#[tokio::test]
+async fn disks_mark_usage_unavailable_without_failing() {
+    let mount_stats = Arc::new(common::FakeMountStats { usage: None });
+    let router = common::app_with_mount_stats(common::fixture_paths(), mount_stats);
+
+    let (status, body) = common::get_for(router, "/v1/system/disks").await;
+
+    assert_eq!(status, StatusCode::OK);
+    let filesystems = body["filesystems"].as_array().expect("filesystems array");
+    assert_eq!(filesystems.len(), 2);
+    assert_eq!(filesystems[0]["usage"], serde_json::Value::Null);
+}
+
+#[tokio::test]
+async fn disks_are_unavailable_when_mounts_is_missing() {
+    let paths = SystemPaths::new("/nonexistent/proc", "/nonexistent/sys", "/");
+    let (status, body) = common::get_for(common::app_with(paths), "/v1/system/disks").await;
+
+    assert_eq!(status, StatusCode::SERVICE_UNAVAILABLE);
+    assert_eq!(body["error"]["code"], "unavailable");
+}
+
+#[tokio::test]
+async fn network_returns_fixture_interfaces() {
+    let (status, body) = common::get("/v1/system/network").await;
+
+    assert_eq!(status, StatusCode::OK);
+    let interfaces = body["interfaces"].as_array().expect("interfaces array");
+    assert_eq!(interfaces.len(), 2);
+    assert_eq!(interfaces[1]["name"], "eth0");
+    assert_eq!(interfaces[1]["rx_bytes"], 5000);
+    assert_eq!(interfaces[1]["tx_dropped"], 4);
+}
+
+#[tokio::test]
+async fn network_is_unavailable_when_dev_is_missing() {
+    let paths = SystemPaths::new("/nonexistent/proc", "/nonexistent/sys", "/");
+    let (status, body) = common::get_for(common::app_with(paths), "/v1/system/network").await;
+
+    assert_eq!(status, StatusCode::SERVICE_UNAVAILABLE);
+    assert_eq!(body["error"]["code"], "unavailable");
 }

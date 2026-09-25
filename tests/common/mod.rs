@@ -5,7 +5,9 @@
     reason = "integration-test helpers fail loudly when request setup breaks"
 )]
 
+use std::io;
 use std::path::{Path, PathBuf};
+use std::sync::Arc;
 
 use axum::Router;
 use axum::body::Body;
@@ -13,7 +15,7 @@ use axum::http::{Request, StatusCode};
 use http_body_util::BodyExt;
 use tower::ServiceExt;
 
-use aetherd::{AppState, SystemPaths, build_router};
+use aetherd::{AppState, DiskUsage, MountStats, SystemPaths, build_router};
 
 pub(crate) fn fixture_root() -> PathBuf {
     Path::new(env!("CARGO_MANIFEST_DIR")).join("tests/fixtures")
@@ -24,12 +26,44 @@ pub(crate) fn fixture_paths() -> SystemPaths {
     SystemPaths::new(root.join("proc"), root.join("sys"), root)
 }
 
+#[derive(Debug, Clone)]
+pub(crate) struct FakeMountStats {
+    pub(crate) usage: Option<DiskUsage>,
+}
+
+impl Default for FakeMountStats {
+    fn default() -> Self {
+        Self {
+            usage: Some(DiskUsage {
+                total_bytes: 1000,
+                free_bytes: 400,
+                available_bytes: 300,
+                used_bytes: 600,
+                used_percent: 66.66,
+            }),
+        }
+    }
+}
+
+impl MountStats for FakeMountStats {
+    fn usage(&self, _path: &Path) -> Result<DiskUsage, io::Error> {
+        match &self.usage {
+            Some(usage) => Ok(usage.clone()),
+            None => Err(io::Error::new(io::ErrorKind::NotFound, "no stats")),
+        }
+    }
+}
+
 pub(crate) fn app() -> Router {
     app_with(fixture_paths())
 }
 
 pub(crate) fn app_with(paths: SystemPaths) -> Router {
-    build_router(AppState::new(paths))
+    app_with_mount_stats(paths, Arc::new(FakeMountStats::default()))
+}
+
+pub(crate) fn app_with_mount_stats(paths: SystemPaths, mount_stats: Arc<dyn MountStats>) -> Router {
+    build_router(AppState::with_mount_stats(paths, mount_stats))
 }
 
 pub(crate) async fn get(uri: &str) -> (StatusCode, serde_json::Value) {

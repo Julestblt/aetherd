@@ -1,12 +1,16 @@
+use std::sync::Arc;
+
 use axum::Json;
 use axum::extract::State;
 
 use crate::api::error::{ApiError, ErrorResponse};
 use crate::app::AppState;
 use crate::system::cpu::{CpuCollector, CpuMetrics};
+use crate::system::disks::{DiskCollector, DisksMetrics};
 use crate::system::host::{HostCollector, HostMetrics};
 use crate::system::load::{LoadCollector, LoadMetrics};
 use crate::system::memory::{MemoryCollector, MemoryMetrics};
+use crate::system::network::{NetworkCollector, NetworkMetrics};
 use crate::system::uptime::{UptimeCollector, UptimeMetrics};
 use crate::system::{SystemCollector, SystemPaths};
 
@@ -70,6 +74,35 @@ pub(crate) async fn load(State(state): State<AppState>) -> Result<Json<LoadMetri
 )]
 pub(crate) async fn uptime(State(state): State<AppState>) -> Result<Json<UptimeMetrics>, ApiError> {
     probe(&UptimeCollector, &state.paths).map(Json)
+}
+
+#[utoipa::path(
+    get,
+    path = "/disks",
+    tag = "system",
+    responses(
+        (status = 200, description = "Filesystem metrics, excluding pseudo-filesystems", body = DisksMetrics),
+        (status = 503, description = "Filesystem metrics unavailable", body = ErrorResponse)
+    )
+)]
+pub(crate) async fn disks(State(state): State<AppState>) -> Result<Json<DisksMetrics>, ApiError> {
+    let collector = DiskCollector::new(Arc::clone(&state.mount_stats));
+    probe(&collector, &state.paths).map(Json)
+}
+
+#[utoipa::path(
+    get,
+    path = "/network",
+    tag = "system",
+    responses(
+        (status = 200, description = "Network interface counters", body = NetworkMetrics),
+        (status = 503, description = "Network metrics unavailable", body = ErrorResponse)
+    )
+)]
+pub(crate) async fn network(
+    State(state): State<AppState>,
+) -> Result<Json<NetworkMetrics>, ApiError> {
+    probe(&NetworkCollector, &state.paths).map(Json)
 }
 
 fn probe<C: SystemCollector>(collector: &C, paths: &SystemPaths) -> Result<C::Metric, ApiError> {

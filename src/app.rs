@@ -1,3 +1,5 @@
+use std::sync::Arc;
+
 use axum::Router;
 use time::OffsetDateTime;
 use tower_http::trace::TraceLayer;
@@ -6,23 +8,31 @@ use utoipa_axum::router::OpenApiRouter;
 use utoipa_axum::routes;
 
 use crate::api::{ApiDoc, error, health, system as system_api};
-use crate::system::SystemPaths;
+use crate::system::{MountStats, RealMountStats, SystemPaths};
 
 /// Shared state handed to every request handler.
 #[derive(Clone, Debug)]
 pub struct AppState {
     pub(crate) started_at: OffsetDateTime,
     pub(crate) paths: SystemPaths,
+    pub(crate) mount_stats: Arc<dyn MountStats>,
 }
 
 impl AppState {
-    /// Creates application state with the daemon start time set to now and the
-    /// given telemetry roots.
+    /// Creates application state with the daemon start time set to now, the
+    /// given telemetry roots, and real filesystem statistics.
     #[must_use]
     pub fn new(paths: SystemPaths) -> Self {
+        Self::with_mount_stats(paths, Arc::new(RealMountStats))
+    }
+
+    /// Creates application state with an injected filesystem-statistics source.
+    #[must_use]
+    pub fn with_mount_stats(paths: SystemPaths, mount_stats: Arc<dyn MountStats>) -> Self {
         Self {
             started_at: OffsetDateTime::now_utc(),
             paths,
+            mount_stats,
         }
     }
 }
@@ -50,7 +60,9 @@ fn build_parts() -> (Router<AppState>, utoipa::openapi::OpenApi) {
         .routes(routes!(system_api::memory))
         .routes(routes!(system_api::host))
         .routes(routes!(system_api::load))
-        .routes(routes!(system_api::uptime));
+        .routes(routes!(system_api::uptime))
+        .routes(routes!(system_api::disks))
+        .routes(routes!(system_api::network));
 
     OpenApiRouter::with_openapi(ApiDoc::openapi())
         .routes(routes!(health::health))

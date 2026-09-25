@@ -3,9 +3,11 @@ use utoipa::OpenApi;
 use crate::api::error::{ErrorCode, ErrorDetail, ErrorResponse};
 use crate::api::health::{HealthResponse, HealthStatus};
 use crate::system::cpu::{CpuCore, CpuMetrics, CpuTimes};
+use crate::system::disks::{DiskUsage, DisksMetrics, FilesystemMetrics};
 use crate::system::host::{HostMetrics, OsRelease};
 use crate::system::load::LoadMetrics;
 use crate::system::memory::MemoryMetrics;
+use crate::system::network::{NetworkInterface, NetworkMetrics};
 use crate::system::uptime::UptimeMetrics;
 
 /// `OpenAPI` document generated from the Rust types and handler annotations.
@@ -23,7 +25,9 @@ use crate::system::uptime::UptimeMetrics;
         crate::api::system::memory,
         crate::api::system::host,
         crate::api::system::load,
-        crate::api::system::uptime
+        crate::api::system::uptime,
+        crate::api::system::disks,
+        crate::api::system::network
     ),
     components(schemas(
         HealthResponse,
@@ -36,6 +40,11 @@ use crate::system::uptime::UptimeMetrics;
         OsRelease,
         LoadMetrics,
         UptimeMetrics,
+        DisksMetrics,
+        FilesystemMetrics,
+        DiskUsage,
+        NetworkMetrics,
+        NetworkInterface,
         ErrorResponse,
         ErrorDetail,
         ErrorCode
