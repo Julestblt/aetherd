@@ -13,6 +13,9 @@ pub(crate) enum ApiError {
     /// The requested resource does not exist.
     #[error("resource not found")]
     NotFound,
+    /// The HTTP method is not supported for this resource.
+    #[error("method not allowed")]
+    MethodNotAllowed,
     /// A metric could not be collected on this host.
     #[error("{0}")]
     Unavailable(String),
@@ -22,6 +25,7 @@ impl ApiError {
     fn status(&self) -> StatusCode {
         match self {
             Self::NotFound => StatusCode::NOT_FOUND,
+            Self::MethodNotAllowed => StatusCode::METHOD_NOT_ALLOWED,
             Self::Unavailable(_) => StatusCode::SERVICE_UNAVAILABLE,
         }
     }
@@ -29,6 +33,7 @@ impl ApiError {
     fn code(&self) -> ErrorCode {
         match self {
             Self::NotFound => ErrorCode::NotFound,
+            Self::MethodNotAllowed => ErrorCode::MethodNotAllowed,
             Self::Unavailable(_) => ErrorCode::Unavailable,
         }
     }
@@ -49,6 +54,11 @@ impl IntoResponse for ApiError {
 /// Fallback handler for unmatched routes.
 pub(crate) async fn not_found() -> ApiError {
     ApiError::NotFound
+}
+
+/// Fallback handler for unsupported methods on a known route.
+pub(crate) async fn method_not_allowed() -> ApiError {
+    ApiError::MethodNotAllowed
 }
 
 /// Machine-readable error envelope returned by every failing endpoint.
@@ -73,6 +83,8 @@ pub(crate) struct ErrorDetail {
 pub(crate) enum ErrorCode {
     /// The requested resource does not exist.
     NotFound,
+    /// The HTTP method is not supported for this resource.
+    MethodNotAllowed,
     /// A metric is not available on this host.
     Unavailable,
 }

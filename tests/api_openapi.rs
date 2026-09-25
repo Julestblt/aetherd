@@ -22,3 +22,9 @@ async fn openapi_documents_health_path_and_schema() {
     assert!(body["components"]["schemas"]["DisksMetrics"].is_object());
     assert!(body["components"]["schemas"]["ErrorResponse"].is_object());
 }
+
+#[tokio::test]
+async fn openapi_document_matches_snapshot() {
+    let (_, body) = common::get("/openapi.json").await;
+    insta::assert_json_snapshot!(body);
+}

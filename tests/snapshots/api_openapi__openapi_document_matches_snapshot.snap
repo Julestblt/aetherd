@@ -1,0 +1,1687 @@
+---
+source: tests/api_openapi.rs
+expression: body
+---
+{
+  "components": {
+    "schemas": {
+      "CpuCore": {
+        "description": "CPU times and utilization for one logical CPU.",
+        "properties": {
+          "id": {
+            "description": "Logical CPU identifier.",
+            "format": "int32",
+            "minimum": 0,
+            "type": "integer"
+          },
+          "times": {
+            "$ref": "#/components/schemas/CpuTimes",
+            "description": "CPU times for this core."
+          },
+          "usage_percent": {
+            "description": "Average utilization since boot, as a percentage in `0..=100`.",
+            "format": "double",
+            "type": "number"
+          }
+        },
+        "required": [
+          "id",
+          "usage_percent",
+          "times"
+        ],
+        "type": "object"
+      },
+      "CpuMetrics": {
+        "description": "Aggregate and per-core CPU metrics.",
+        "properties": {
+          "cores": {
+            "description": "One entry per logical CPU.",
+            "items": {
+              "$ref": "#/components/schemas/CpuCore"
+            },
+            "type": "array"
+          },
+          "total": {
+            "$ref": "#/components/schemas/CpuTimes",
+            "description": "Aggregate CPU times across all cores."
+          },
+          "usage_percent": {
+            "description": "Average CPU utilization since boot, as a percentage in `0..=100`.",
+            "format": "double",
+            "type": "number"
+          }
+        },
+        "required": [
+          "usage_percent",
+          "total",
+          "cores"
+        ],
+        "type": "object"
+      },
+      "CpuTimes": {
+        "description": "CPU times read from `/proc/stat`.\n\nValues are clock ticks in `USER_HZ` (conventionally 100 per second). Guest\ntime is already included in user and nice time and is not added again when\ncomputing totals.",
+        "properties": {
+          "guest_nice_ticks": {
+            "description": "Ticks spent running a low-priority virtual CPU for a guest.",
+            "format": "int64",
+            "minimum": 0,
+            "type": "integer"
+          },
+          "guest_ticks": {
+            "description": "Ticks spent running a virtual CPU for a guest.",
+            "format": "int64",
+            "minimum": 0,
+            "type": "integer"
+          },
+          "idle_ticks": {
+            "description": "Ticks spent idle.",
+            "format": "int64",
+            "minimum": 0,
+            "type": "integer"
+          },
+          "iowait_ticks": {
+            "description": "Ticks waiting for I/O to complete.",
+            "format": "int64",
+            "minimum": 0,
+            "type": "integer"
+          },
+          "irq_ticks": {
+            "description": "Ticks servicing hardware interrupts.",
+            "format": "int64",
+            "minimum": 0,
+            "type": "integer"
+          },
+          "nice_ticks": {
+            "description": "Ticks spent in user mode with low priority.",
+            "format": "int64",
+            "minimum": 0,
+            "type": "integer"
+          },
+          "softirq_ticks": {
+            "description": "Ticks servicing software interrupts.",
+            "format": "int64",
+            "minimum": 0,
+            "type": "integer"
+          },
+          "steal_ticks": {
+            "description": "Ticks stolen by other virtual machines.",
+            "format": "int64",
+            "minimum": 0,
+            "type": "integer"
+          },
+          "system_ticks": {
+            "description": "Ticks spent in system mode.",
+            "format": "int64",
+            "minimum": 0,
+            "type": "integer"
+          },
+          "user_ticks": {
+            "description": "Ticks spent in user mode.",
+            "format": "int64",
+            "minimum": 0,
+            "type": "integer"
+          }
+        },
+        "required": [
+          "user_ticks",
+          "nice_ticks",
+          "system_ticks",
+          "idle_ticks",
+          "iowait_ticks",
+          "irq_ticks",
+          "softirq_ticks",
+          "steal_ticks",
+          "guest_ticks",
+          "guest_nice_ticks"
+        ],
+        "type": "object"
+      },
+      "DiskUsage": {
+        "description": "Capacity statistics for one mounted filesystem.",
+        "properties": {
+          "available_bytes": {
+            "description": "Free bytes available to unprivileged users.",
+            "format": "int64",
+            "minimum": 0,
+            "type": "integer"
+          },
+          "free_bytes": {
+            "description": "Free bytes available to the superuser.",
+            "format": "int64",
+            "minimum": 0,
+            "type": "integer"
+          },
+          "total_bytes": {
+            "description": "Total size in bytes.",
+            "format": "int64",
+            "minimum": 0,
+            "type": "integer"
+          },
+          "used_bytes": {
+            "description": "Used bytes: `total - free`.",
+            "format": "int64",
+            "minimum": 0,
+            "type": "integer"
+          },
+          "used_percent": {
+            "description": "Used space as a percentage of addressable space, in `0..=100`.",
+            "format": "double",
+            "type": "number"
+          }
+        },
+        "required": [
+          "total_bytes",
+          "free_bytes",
+          "available_bytes",
+          "used_bytes",
+          "used_percent"
+        ],
+        "type": "object"
+      },
+      "DisksMetrics": {
+        "description": "Filesystem metrics for all included mounts.",
+        "properties": {
+          "filesystems": {
+            "description": "Mounted, non-pseudo filesystems.",
+            "items": {
+              "$ref": "#/components/schemas/FilesystemMetrics"
+            },
+            "type": "array"
+          }
+        },
+        "required": [
+          "filesystems"
+        ],
+        "type": "object"
+      },
+      "ErrorCode": {
+        "description": "Stable error codes clients may match on.",
+        "enum": [
+          "not_found",
+          "method_not_allowed",
+          "unavailable"
+        ],
+        "type": "string"
+      },
+      "ErrorDetail": {
+        "description": "Details of a single error.",
+        "properties": {
+          "code": {
+            "$ref": "#/components/schemas/ErrorCode",
+            "description": "Stable, machine-readable error code."
+          },
+          "message": {
+            "description": "Human-readable description that never exposes internals.",
+            "type": "string"
+          }
+        },
+        "required": [
+          "code",
+          "message"
+        ],
+        "type": "object"
+      },
+      "ErrorResponse": {
+        "description": "Machine-readable error envelope returned by every failing endpoint.",
+        "properties": {
+          "error": {
+            "$ref": "#/components/schemas/ErrorDetail",
+            "description": "The error payload."
+          }
+        },
+        "required": [
+          "error"
+        ],
+        "type": "object"
+      },
+      "FilesystemMetrics": {
+        "description": "A mounted filesystem with optional capacity statistics.",
+        "properties": {
+          "fs_type": {
+            "description": "Filesystem type.",
+            "type": "string"
+          },
+          "mount_point": {
+            "description": "Mount point.",
+            "type": "string"
+          },
+          "source": {
+            "description": "Source device or pseudo-source.",
+            "type": "string"
+          },
+          "usage": {
+            "oneOf": [
+              {
+                "$ref": "#/components/schemas/DiskUsage",
+                "description": "Capacity statistics, absent when they could not be read."
+              },
+              {
+                "type": "null"
+              }
+            ]
+          }
+        },
+        "required": [
+          "source",
+          "mount_point",
+          "fs_type"
+        ],
+        "type": "object"
+      },
+      "HealthResponse": {
+        "description": "Liveness response for `GET /health`.",
+        "properties": {
+          "collected_at": {
+            "description": "RFC3339 UTC timestamp of this response.",
+            "format": "date-time",
+            "type": "string"
+          },
+          "started_at": {
+            "description": "RFC3339 UTC timestamp of daemon start.",
+            "format": "date-time",
+            "type": "string"
+          },
+          "status": {
+            "$ref": "#/components/schemas/HealthStatus",
+            "description": "Always `ok` while the process is serving requests."
+          },
+          "uptime_seconds": {
+            "description": "Seconds elapsed since the daemon started.",
+            "format": "double",
+            "type": "number"
+          },
+          "version": {
+            "description": "Daemon version taken from the crate metadata.",
+            "type": "string"
+          }
+        },
+        "required": [
+          "status",
+          "version",
+          "started_at",
+          "uptime_seconds",
+          "collected_at"
+        ],
+        "type": "object"
+      },
+      "HealthStatus": {
+        "description": "Liveness state of the daemon.",
+        "enum": [
+          "ok"
+        ],
+        "type": "string"
+      },
+      "HostMetrics": {
+        "description": "Best-effort host information.\n\nEvery field is optional because a host may lack `/etc/os-release`, a\nreadable hostname, or a `btime` line. Missing metadata never fails the\nendpoint.",
+        "properties": {
+          "architecture": {
+            "description": "Build architecture of this daemon binary.",
+            "type": "string"
+          },
+          "boot_time": {
+            "description": "System boot time, when reported.",
+            "format": "date-time",
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "hostname": {
+            "description": "Hostname reported by the kernel.",
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "kernel_release": {
+            "description": "Kernel release, for example `6.8.0-45-generic`.",
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "kernel_version": {
+            "description": "Kernel build version string.",
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "os": {
+            "oneOf": [
+              {
+                "$ref": "#/components/schemas/OsRelease",
+                "description": "Parsed `/etc/os-release`, when present."
+              },
+              {
+                "type": "null"
+              }
+            ]
+          }
+        },
+        "required": [
+          "architecture"
+        ],
+        "type": "object"
+      },
+      "LoadMetrics": {
+        "description": "System load average and process counts from `/proc/loadavg`.",
+        "properties": {
+          "last_pid": {
+            "description": "Most recently created process identifier.",
+            "format": "int64",
+            "minimum": 0,
+            "type": "integer"
+          },
+          "load1": {
+            "description": "One-minute load average.",
+            "format": "double",
+            "type": "number"
+          },
+          "load15": {
+            "description": "Fifteen-minute load average.",
+            "format": "double",
+            "type": "number"
+          },
+          "load5": {
+            "description": "Five-minute load average.",
+            "format": "double",
+            "type": "number"
+          },
+          "runnable": {
+            "description": "Currently runnable processes.",
+            "format": "int64",
+            "minimum": 0,
+            "type": "integer"
+          },
+          "total_processes": {
+            "description": "Total processes on the host.",
+            "format": "int64",
+            "minimum": 0,
+            "type": "integer"
+          }
+        },
+        "required": [
+          "load1",
+          "load5",
+          "load15",
+          "runnable",
+          "total_processes",
+          "last_pid"
+        ],
+        "type": "object"
+      },
+      "MemoryMetrics": {
+        "description": "Memory and swap usage read from `/proc/meminfo`, in bytes.",
+        "properties": {
+          "available_bytes": {
+            "description": "RAM available to new workloads without swapping, when reported.",
+            "format": "int64",
+            "minimum": 0,
+            "type": [
+              "integer",
+              "null"
+            ]
+          },
+          "buffers_bytes": {
+            "description": "Temporary storage for raw block device data.",
+            "format": "int64",
+            "minimum": 0,
+            "type": "integer"
+          },
+          "cached_bytes": {
+            "description": "Page cache memory.",
+            "format": "int64",
+            "minimum": 0,
+            "type": "integer"
+          },
+          "free_bytes": {
+            "description": "Unused RAM.",
+            "format": "int64",
+            "minimum": 0,
+            "type": "integer"
+          },
+          "swap_free_bytes": {
+            "description": "Unused swap space.",
+            "format": "int64",
+            "minimum": 0,
+            "type": "integer"
+          },
+          "swap_total_bytes": {
+            "description": "Total swap space.",
+            "format": "int64",
+            "minimum": 0,
+            "type": "integer"
+          },
+          "swap_used_bytes": {
+            "description": "Used swap space.",
+            "format": "int64",
+            "minimum": 0,
+            "type": "integer"
+          },
+          "total_bytes": {
+            "description": "Total usable RAM.",
+            "format": "int64",
+            "minimum": 0,
+            "type": "integer"
+          },
+          "used_bytes": {
+            "description": "Used RAM: `total - available` when `MemAvailable` is reported, otherwise\n`total - free - buffers - cached`.",
+            "format": "int64",
+            "minimum": 0,
+            "type": "integer"
+          }
+        },
+        "required": [
+          "total_bytes",
+          "free_bytes",
+          "used_bytes",
+          "buffers_bytes",
+          "cached_bytes",
+          "swap_total_bytes",
+          "swap_free_bytes",
+          "swap_used_bytes"
+        ],
+        "type": "object"
+      },
+      "NetworkInterface": {
+        "description": "An interface entry from `/proc/net/dev`.",
+        "properties": {
+          "name": {
+            "description": "Interface name.",
+            "type": "string"
+          },
+          "rx_bytes": {
+            "description": "Bytes received since boot.",
+            "format": "int64",
+            "minimum": 0,
+            "type": "integer"
+          },
+          "rx_dropped": {
+            "description": "Received packets dropped since boot.",
+            "format": "int64",
+            "minimum": 0,
+            "type": "integer"
+          },
+          "rx_errors": {
+            "description": "Receive errors since boot.",
+            "format": "int64",
+            "minimum": 0,
+            "type": "integer"
+          },
+          "rx_packets": {
+            "description": "Packets received since boot.",
+            "format": "int64",
+            "minimum": 0,
+            "type": "integer"
+          },
+          "tx_bytes": {
+            "description": "Bytes transmitted since boot.",
+            "format": "int64",
+            "minimum": 0,
+            "type": "integer"
+          },
+          "tx_dropped": {
+            "description": "Transmitted packets dropped since boot.",
+            "format": "int64",
+            "minimum": 0,
+            "type": "integer"
+          },
+          "tx_errors": {
+            "description": "Transmit errors since boot.",
+            "format": "int64",
+            "minimum": 0,
+            "type": "integer"
+          },
+          "tx_packets": {
+            "description": "Packets transmitted since boot.",
+            "format": "int64",
+            "minimum": 0,
+            "type": "integer"
+          }
+        },
+        "required": [
+          "name",
+          "rx_bytes",
+          "rx_packets",
+          "rx_errors",
+          "rx_dropped",
+          "tx_bytes",
+          "tx_packets",
+          "tx_errors",
+          "tx_dropped"
+        ],
+        "type": "object"
+      },
+      "NetworkMetrics": {
+        "description": "Per-interface network counters.",
+        "properties": {
+          "interfaces": {
+            "description": "One entry per network interface.",
+            "items": {
+              "$ref": "#/components/schemas/NetworkInterface"
+            },
+            "type": "array"
+          }
+        },
+        "required": [
+          "interfaces"
+        ],
+        "type": "object"
+      },
+      "OsRelease": {
+        "description": "Selected fields from `/etc/os-release`.",
+        "properties": {
+          "id": {
+            "description": "Distribution identifier, for example `ubuntu`.",
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "name": {
+            "description": "Distribution name.",
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "pretty_name": {
+            "description": "Human-readable distribution description.",
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "version": {
+            "description": "Distribution version.",
+            "type": [
+              "string",
+              "null"
+            ]
+          }
+        },
+        "type": "object"
+      },
+      "Section_CpuMetrics": {
+        "description": "A metric that may or may not be available on the current host.\n\nThe aggregate overview uses this so a single failing collector never fails\nthe whole response.",
+        "oneOf": [
+          {
+            "description": "The metric was collected.",
+            "properties": {
+              "status": {
+                "enum": [
+                  "available"
+                ],
+                "type": "string"
+              },
+              "value": {
+                "description": "Aggregate and per-core CPU metrics.",
+                "properties": {
+                  "cores": {
+                    "description": "One entry per logical CPU.",
+                    "items": {
+                      "$ref": "#/components/schemas/CpuCore"
+                    },
+                    "type": "array"
+                  },
+                  "total": {
+                    "$ref": "#/components/schemas/CpuTimes",
+                    "description": "Aggregate CPU times across all cores."
+                  },
+                  "usage_percent": {
+                    "description": "Average CPU utilization since boot, as a percentage in `0..=100`.",
+                    "format": "double",
+                    "type": "number"
+                  }
+                },
+                "required": [
+                  "usage_percent",
+                  "total",
+                  "cores"
+                ],
+                "type": "object"
+              }
+            },
+            "required": [
+              "value",
+              "status"
+            ],
+            "type": "object"
+          },
+          {
+            "description": "The metric could not be collected on this host.",
+            "properties": {
+              "reason": {
+                "description": "Why the metric is unavailable.",
+                "type": "string"
+              },
+              "status": {
+                "enum": [
+                  "unavailable"
+                ],
+                "type": "string"
+              }
+            },
+            "required": [
+              "reason",
+              "status"
+            ],
+            "type": "object"
+          }
+        ]
+      },
+      "Section_DisksMetrics": {
+        "description": "A metric that may or may not be available on the current host.\n\nThe aggregate overview uses this so a single failing collector never fails\nthe whole response.",
+        "oneOf": [
+          {
+            "description": "The metric was collected.",
+            "properties": {
+              "status": {
+                "enum": [
+                  "available"
+                ],
+                "type": "string"
+              },
+              "value": {
+                "description": "Filesystem metrics for all included mounts.",
+                "properties": {
+                  "filesystems": {
+                    "description": "Mounted, non-pseudo filesystems.",
+                    "items": {
+                      "$ref": "#/components/schemas/FilesystemMetrics"
+                    },
+                    "type": "array"
+                  }
+                },
+                "required": [
+                  "filesystems"
+                ],
+                "type": "object"
+              }
+            },
+            "required": [
+              "value",
+              "status"
+            ],
+            "type": "object"
+          },
+          {
+            "description": "The metric could not be collected on this host.",
+            "properties": {
+              "reason": {
+                "description": "Why the metric is unavailable.",
+                "type": "string"
+              },
+              "status": {
+                "enum": [
+                  "unavailable"
+                ],
+                "type": "string"
+              }
+            },
+            "required": [
+              "reason",
+              "status"
+            ],
+            "type": "object"
+          }
+        ]
+      },
+      "Section_HostMetrics": {
+        "description": "A metric that may or may not be available on the current host.\n\nThe aggregate overview uses this so a single failing collector never fails\nthe whole response.",
+        "oneOf": [
+          {
+            "description": "The metric was collected.",
+            "properties": {
+              "status": {
+                "enum": [
+                  "available"
+                ],
+                "type": "string"
+              },
+              "value": {
+                "description": "Best-effort host information.\n\nEvery field is optional because a host may lack `/etc/os-release`, a\nreadable hostname, or a `btime` line. Missing metadata never fails the\nendpoint.",
+                "properties": {
+                  "architecture": {
+                    "description": "Build architecture of this daemon binary.",
+                    "type": "string"
+                  },
+                  "boot_time": {
+                    "description": "System boot time, when reported.",
+                    "format": "date-time",
+                    "type": [
+                      "string",
+                      "null"
+                    ]
+                  },
+                  "hostname": {
+                    "description": "Hostname reported by the kernel.",
+                    "type": [
+                      "string",
+                      "null"
+                    ]
+                  },
+                  "kernel_release": {
+                    "description": "Kernel release, for example `6.8.0-45-generic`.",
+                    "type": [
+                      "string",
+                      "null"
+                    ]
+                  },
+                  "kernel_version": {
+                    "description": "Kernel build version string.",
+                    "type": [
+                      "string",
+                      "null"
+                    ]
+                  },
+                  "os": {
+                    "oneOf": [
+                      {
+                        "$ref": "#/components/schemas/OsRelease",
+                        "description": "Parsed `/etc/os-release`, when present."
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  }
+                },
+                "required": [
+                  "architecture"
+                ],
+                "type": "object"
+              }
+            },
+            "required": [
+              "value",
+              "status"
+            ],
+            "type": "object"
+          },
+          {
+            "description": "The metric could not be collected on this host.",
+            "properties": {
+              "reason": {
+                "description": "Why the metric is unavailable.",
+                "type": "string"
+              },
+              "status": {
+                "enum": [
+                  "unavailable"
+                ],
+                "type": "string"
+              }
+            },
+            "required": [
+              "reason",
+              "status"
+            ],
+            "type": "object"
+          }
+        ]
+      },
+      "Section_LoadMetrics": {
+        "description": "A metric that may or may not be available on the current host.\n\nThe aggregate overview uses this so a single failing collector never fails\nthe whole response.",
+        "oneOf": [
+          {
+            "description": "The metric was collected.",
+            "properties": {
+              "status": {
+                "enum": [
+                  "available"
+                ],
+                "type": "string"
+              },
+              "value": {
+                "description": "System load average and process counts from `/proc/loadavg`.",
+                "properties": {
+                  "last_pid": {
+                    "description": "Most recently created process identifier.",
+                    "format": "int64",
+                    "minimum": 0,
+                    "type": "integer"
+                  },
+                  "load1": {
+                    "description": "One-minute load average.",
+                    "format": "double",
+                    "type": "number"
+                  },
+                  "load15": {
+                    "description": "Fifteen-minute load average.",
+                    "format": "double",
+                    "type": "number"
+                  },
+                  "load5": {
+                    "description": "Five-minute load average.",
+                    "format": "double",
+                    "type": "number"
+                  },
+                  "runnable": {
+                    "description": "Currently runnable processes.",
+                    "format": "int64",
+                    "minimum": 0,
+                    "type": "integer"
+                  },
+                  "total_processes": {
+                    "description": "Total processes on the host.",
+                    "format": "int64",
+                    "minimum": 0,
+                    "type": "integer"
+                  }
+                },
+                "required": [
+                  "load1",
+                  "load5",
+                  "load15",
+                  "runnable",
+                  "total_processes",
+                  "last_pid"
+                ],
+                "type": "object"
+              }
+            },
+            "required": [
+              "value",
+              "status"
+            ],
+            "type": "object"
+          },
+          {
+            "description": "The metric could not be collected on this host.",
+            "properties": {
+              "reason": {
+                "description": "Why the metric is unavailable.",
+                "type": "string"
+              },
+              "status": {
+                "enum": [
+                  "unavailable"
+                ],
+                "type": "string"
+              }
+            },
+            "required": [
+              "reason",
+              "status"
+            ],
+            "type": "object"
+          }
+        ]
+      },
+      "Section_MemoryMetrics": {
+        "description": "A metric that may or may not be available on the current host.\n\nThe aggregate overview uses this so a single failing collector never fails\nthe whole response.",
+        "oneOf": [
+          {
+            "description": "The metric was collected.",
+            "properties": {
+              "status": {
+                "enum": [
+                  "available"
+                ],
+                "type": "string"
+              },
+              "value": {
+                "description": "Memory and swap usage read from `/proc/meminfo`, in bytes.",
+                "properties": {
+                  "available_bytes": {
+                    "description": "RAM available to new workloads without swapping, when reported.",
+                    "format": "int64",
+                    "minimum": 0,
+                    "type": [
+                      "integer",
+                      "null"
+                    ]
+                  },
+                  "buffers_bytes": {
+                    "description": "Temporary storage for raw block device data.",
+                    "format": "int64",
+                    "minimum": 0,
+                    "type": "integer"
+                  },
+                  "cached_bytes": {
+                    "description": "Page cache memory.",
+                    "format": "int64",
+                    "minimum": 0,
+                    "type": "integer"
+                  },
+                  "free_bytes": {
+                    "description": "Unused RAM.",
+                    "format": "int64",
+                    "minimum": 0,
+                    "type": "integer"
+                  },
+                  "swap_free_bytes": {
+                    "description": "Unused swap space.",
+                    "format": "int64",
+                    "minimum": 0,
+                    "type": "integer"
+                  },
+                  "swap_total_bytes": {
+                    "description": "Total swap space.",
+                    "format": "int64",
+                    "minimum": 0,
+                    "type": "integer"
+                  },
+                  "swap_used_bytes": {
+                    "description": "Used swap space.",
+                    "format": "int64",
+                    "minimum": 0,
+                    "type": "integer"
+                  },
+                  "total_bytes": {
+                    "description": "Total usable RAM.",
+                    "format": "int64",
+                    "minimum": 0,
+                    "type": "integer"
+                  },
+                  "used_bytes": {
+                    "description": "Used RAM: `total - available` when `MemAvailable` is reported, otherwise\n`total - free - buffers - cached`.",
+                    "format": "int64",
+                    "minimum": 0,
+                    "type": "integer"
+                  }
+                },
+                "required": [
+                  "total_bytes",
+                  "free_bytes",
+                  "used_bytes",
+                  "buffers_bytes",
+                  "cached_bytes",
+                  "swap_total_bytes",
+                  "swap_free_bytes",
+                  "swap_used_bytes"
+                ],
+                "type": "object"
+              }
+            },
+            "required": [
+              "value",
+              "status"
+            ],
+            "type": "object"
+          },
+          {
+            "description": "The metric could not be collected on this host.",
+            "properties": {
+              "reason": {
+                "description": "Why the metric is unavailable.",
+                "type": "string"
+              },
+              "status": {
+                "enum": [
+                  "unavailable"
+                ],
+                "type": "string"
+              }
+            },
+            "required": [
+              "reason",
+              "status"
+            ],
+            "type": "object"
+          }
+        ]
+      },
+      "Section_NetworkMetrics": {
+        "description": "A metric that may or may not be available on the current host.\n\nThe aggregate overview uses this so a single failing collector never fails\nthe whole response.",
+        "oneOf": [
+          {
+            "description": "The metric was collected.",
+            "properties": {
+              "status": {
+                "enum": [
+                  "available"
+                ],
+                "type": "string"
+              },
+              "value": {
+                "description": "Per-interface network counters.",
+                "properties": {
+                  "interfaces": {
+                    "description": "One entry per network interface.",
+                    "items": {
+                      "$ref": "#/components/schemas/NetworkInterface"
+                    },
+                    "type": "array"
+                  }
+                },
+                "required": [
+                  "interfaces"
+                ],
+                "type": "object"
+              }
+            },
+            "required": [
+              "value",
+              "status"
+            ],
+            "type": "object"
+          },
+          {
+            "description": "The metric could not be collected on this host.",
+            "properties": {
+              "reason": {
+                "description": "Why the metric is unavailable.",
+                "type": "string"
+              },
+              "status": {
+                "enum": [
+                  "unavailable"
+                ],
+                "type": "string"
+              }
+            },
+            "required": [
+              "reason",
+              "status"
+            ],
+            "type": "object"
+          }
+        ]
+      },
+      "Section_UptimeMetrics": {
+        "description": "A metric that may or may not be available on the current host.\n\nThe aggregate overview uses this so a single failing collector never fails\nthe whole response.",
+        "oneOf": [
+          {
+            "description": "The metric was collected.",
+            "properties": {
+              "status": {
+                "enum": [
+                  "available"
+                ],
+                "type": "string"
+              },
+              "value": {
+                "description": "System uptime and idle time from `/proc/uptime`.",
+                "properties": {
+                  "idle_seconds": {
+                    "description": "Aggregate seconds the CPUs have been idle since boot.",
+                    "format": "double",
+                    "type": "number"
+                  },
+                  "uptime_seconds": {
+                    "description": "Seconds since the system booted.",
+                    "format": "double",
+                    "type": "number"
+                  }
+                },
+                "required": [
+                  "uptime_seconds",
+                  "idle_seconds"
+                ],
+                "type": "object"
+              }
+            },
+            "required": [
+              "value",
+              "status"
+            ],
+            "type": "object"
+          },
+          {
+            "description": "The metric could not be collected on this host.",
+            "properties": {
+              "reason": {
+                "description": "Why the metric is unavailable.",
+                "type": "string"
+              },
+              "status": {
+                "enum": [
+                  "unavailable"
+                ],
+                "type": "string"
+              }
+            },
+            "required": [
+              "reason",
+              "status"
+            ],
+            "type": "object"
+          }
+        ]
+      },
+      "SystemOverview": {
+        "description": "Snapshot of every system section, each reporting its own availability.",
+        "properties": {
+          "collected_at": {
+            "description": "RFC3339 UTC timestamp of this response.",
+            "format": "date-time",
+            "type": "string"
+          },
+          "cpu": {
+            "$ref": "#/components/schemas/Section_CpuMetrics",
+            "description": "CPU metrics."
+          },
+          "disks": {
+            "$ref": "#/components/schemas/Section_DisksMetrics",
+            "description": "Filesystem metrics."
+          },
+          "host": {
+            "$ref": "#/components/schemas/Section_HostMetrics",
+            "description": "Host metadata."
+          },
+          "load": {
+            "$ref": "#/components/schemas/Section_LoadMetrics",
+            "description": "Load average."
+          },
+          "memory": {
+            "$ref": "#/components/schemas/Section_MemoryMetrics",
+            "description": "Memory metrics."
+          },
+          "network": {
+            "$ref": "#/components/schemas/Section_NetworkMetrics",
+            "description": "Network metrics."
+          },
+          "uptime": {
+            "$ref": "#/components/schemas/Section_UptimeMetrics",
+            "description": "System uptime."
+          }
+        },
+        "required": [
+          "collected_at",
+          "host",
+          "cpu",
+          "memory",
+          "load",
+          "uptime",
+          "disks",
+          "network"
+        ],
+        "type": "object"
+      },
+      "UptimeMetrics": {
+        "description": "System uptime and idle time from `/proc/uptime`.",
+        "properties": {
+          "idle_seconds": {
+            "description": "Aggregate seconds the CPUs have been idle since boot.",
+            "format": "double",
+            "type": "number"
+          },
+          "uptime_seconds": {
+            "description": "Seconds since the system booted.",
+            "format": "double",
+            "type": "number"
+          }
+        },
+        "required": [
+          "uptime_seconds",
+          "idle_seconds"
+        ],
+        "type": "object"
+      }
+    }
+  },
+  "info": {
+    "description": "Linux system telemetry and, later, normalized AI provider usage.",
+    "license": {
+      "name": "MIT OR Apache-2.0"
+    },
+    "title": "aetherd API",
+    "version": "0.1.0"
+  },
+  "openapi": "3.1.0",
+  "paths": {
+    "/": {
+      "get": {
+        "operationId": "overview",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SystemOverview"
+                }
+              }
+            },
+            "description": "System overview; every section reports its own availability"
+          }
+        },
+        "tags": [
+          "system"
+        ]
+      }
+    },
+    "/cpu": {
+      "get": {
+        "operationId": "cpu",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CpuMetrics"
+                }
+              }
+            },
+            "description": "CPU metrics"
+          },
+          "503": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "CPU metrics unavailable"
+          }
+        },
+        "tags": [
+          "system"
+        ]
+      }
+    },
+    "/disks": {
+      "get": {
+        "operationId": "disks",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DisksMetrics"
+                }
+              }
+            },
+            "description": "Filesystem metrics, excluding pseudo-filesystems"
+          },
+          "503": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Filesystem metrics unavailable"
+          }
+        },
+        "tags": [
+          "system"
+        ]
+      }
+    },
+    "/health": {
+      "get": {
+        "operationId": "health",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HealthResponse"
+                }
+              }
+            },
+            "description": "Daemon is alive"
+          }
+        },
+        "tags": [
+          "health"
+        ]
+      }
+    },
+    "/host": {
+      "get": {
+        "operationId": "host",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HostMetrics"
+                }
+              }
+            },
+            "description": "Host information"
+          }
+        },
+        "tags": [
+          "system"
+        ]
+      }
+    },
+    "/load": {
+      "get": {
+        "operationId": "load",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/LoadMetrics"
+                }
+              }
+            },
+            "description": "Load average"
+          },
+          "503": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Load average unavailable"
+          }
+        },
+        "tags": [
+          "system"
+        ]
+      }
+    },
+    "/memory": {
+      "get": {
+        "operationId": "memory",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MemoryMetrics"
+                }
+              }
+            },
+            "description": "Memory metrics"
+          },
+          "503": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Memory metrics unavailable"
+          }
+        },
+        "tags": [
+          "system"
+        ]
+      }
+    },
+    "/network": {
+      "get": {
+        "operationId": "network",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/NetworkMetrics"
+                }
+              }
+            },
+            "description": "Network interface counters"
+          },
+          "503": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Network metrics unavailable"
+          }
+        },
+        "tags": [
+          "system"
+        ]
+      }
+    },
+    "/uptime": {
+      "get": {
+        "operationId": "uptime",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UptimeMetrics"
+                }
+              }
+            },
+            "description": "System uptime"
+          },
+          "503": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Uptime unavailable"
+          }
+        },
+        "tags": [
+          "system"
+        ]
+      }
+    },
+    "/v1/system": {
+      "get": {
+        "operationId": "overview",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SystemOverview"
+                }
+              }
+            },
+            "description": "System overview; every section reports its own availability"
+          }
+        },
+        "tags": [
+          "system"
+        ]
+      }
+    },
+    "/v1/system/cpu": {
+      "get": {
+        "operationId": "cpu",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CpuMetrics"
+                }
+              }
+            },
+            "description": "CPU metrics"
+          },
+          "503": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "CPU metrics unavailable"
+          }
+        },
+        "tags": [
+          "system"
+        ]
+      }
+    },
+    "/v1/system/disks": {
+      "get": {
+        "operationId": "disks",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DisksMetrics"
+                }
+              }
+            },
+            "description": "Filesystem metrics, excluding pseudo-filesystems"
+          },
+          "503": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Filesystem metrics unavailable"
+          }
+        },
+        "tags": [
+          "system"
+        ]
+      }
+    },
+    "/v1/system/host": {
+      "get": {
+        "operationId": "host",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HostMetrics"
+                }
+              }
+            },
+            "description": "Host information"
+          }
+        },
+        "tags": [
+          "system"
+        ]
+      }
+    },
+    "/v1/system/load": {
+      "get": {
+        "operationId": "load",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/LoadMetrics"
+                }
+              }
+            },
+            "description": "Load average"
+          },
+          "503": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Load average unavailable"
+          }
+        },
+        "tags": [
+          "system"
+        ]
+      }
+    },
+    "/v1/system/memory": {
+      "get": {
+        "operationId": "memory",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MemoryMetrics"
+                }
+              }
+            },
+            "description": "Memory metrics"
+          },
+          "503": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Memory metrics unavailable"
+          }
+        },
+        "tags": [
+          "system"
+        ]
+      }
+    },
+    "/v1/system/network": {
+      "get": {
+        "operationId": "network",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/NetworkMetrics"
+                }
+              }
+            },
+            "description": "Network interface counters"
+          },
+          "503": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Network metrics unavailable"
+          }
+        },
+        "tags": [
+          "system"
+        ]
+      }
+    },
+    "/v1/system/uptime": {
+      "get": {
+        "operationId": "uptime",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UptimeMetrics"
+                }
+              }
+            },
+            "description": "System uptime"
+          },
+          "503": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Uptime unavailable"
+          }
+        },
+        "tags": [
+          "system"
+        ]
+      }
+    }
+  }
+}

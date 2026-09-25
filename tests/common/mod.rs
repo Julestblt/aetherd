@@ -4,6 +4,10 @@
     clippy::expect_used,
     reason = "integration-test helpers fail loudly when request setup breaks"
 )]
+#![allow(
+    dead_code,
+    reason = "each integration test crate compiles the shared helpers it needs"
+)]
 
 use std::io;
 use std::path::{Path, PathBuf};
@@ -11,7 +15,7 @@ use std::sync::Arc;
 
 use axum::Router;
 use axum::body::Body;
-use axum::http::{Request, StatusCode};
+use axum::http::{Method, Request, StatusCode};
 use http_body_util::BodyExt;
 use tower::ServiceExt;
 
@@ -67,13 +71,26 @@ pub(crate) fn app_with_mount_stats(paths: SystemPaths, mount_stats: Arc<dyn Moun
 }
 
 pub(crate) async fn get(uri: &str) -> (StatusCode, serde_json::Value) {
-    get_for(app(), uri).await
+    send_for(app(), Method::GET, uri).await
 }
 
 pub(crate) async fn get_for(router: Router, uri: &str) -> (StatusCode, serde_json::Value) {
+    send_for(router, Method::GET, uri).await
+}
+
+pub(crate) async fn post(uri: &str) -> (StatusCode, serde_json::Value) {
+    send_for(app(), Method::POST, uri).await
+}
+
+pub(crate) async fn send_for(
+    router: Router,
+    method: Method,
+    uri: &str,
+) -> (StatusCode, serde_json::Value) {
     let response = router
         .oneshot(
             Request::builder()
+                .method(method)
                 .uri(uri)
                 .body(Body::empty())
                 .expect("valid request"),

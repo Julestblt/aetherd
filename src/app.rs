@@ -50,6 +50,7 @@ pub fn build_router(state: AppState) -> Router {
             }),
         )
         .fallback(error::not_found)
+        .method_not_allowed_fallback(error::method_not_allowed)
         .layer(TraceLayer::new_for_http())
         .with_state(state)
 }

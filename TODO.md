@@ -58,7 +58,7 @@ Status legend: `[x]` done and tested, `[ ]` not started, `[~]` partially done.
 - [x] `/openapi.json` always available, independent of the UI
 - [ ] Swagger UI behind the default-on `swagger-ui` feature
 - [ ] Documented Postman import from the OpenAPI spec
-- [ ] API-level golden tests pinning the spec
+- [x] API-level golden tests pinning the spec
 
 ## 5. AI usage providers
 
@@ -96,7 +96,7 @@ Status legend: `[x]` done and tested, `[ ]` not started, `[~]` partially done.
 - [x] Deterministic fixtures via configurable filesystem roots
 - [x] HTTP status code and error schema regression coverage
 - [ ] Property tests for parsers with wide input spaces
-- [ ] API response snapshot tests for contract stability
+- [x] API response snapshot tests for contract stability
 
 ## 10. Documentation
 

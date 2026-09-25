@@ -1,6 +1,9 @@
 /target
 **/*.rs.bk
 
+# insta pending snapshots
+**/*.snap.new
+
 # Local configuration and secrets
 .env
 aetherd.local.toml

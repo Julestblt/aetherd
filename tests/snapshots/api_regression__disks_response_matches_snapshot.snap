@@ -1,0 +1,32 @@
+---
+source: tests/api_regression.rs
+expression: body
+---
+{
+  "filesystems": [
+    {
+      "fs_type": "ext4",
+      "mount_point": "/",
+      "source": "/dev/sda1",
+      "usage": {
+        "available_bytes": 300,
+        "free_bytes": 400,
+        "total_bytes": 1000,
+        "used_bytes": 600,
+        "used_percent": 66.66
+      }
+    },
+    {
+      "fs_type": "ext4",
+      "mount_point": "/data volume",
+      "source": "/dev/sdb1",
+      "usage": {
+        "available_bytes": 300,
+        "free_bytes": 400,
+        "total_bytes": 1000,
+        "used_bytes": 600,
+        "used_percent": 66.66
+      }
+    }
+  ]
+}

@@ -1,0 +1,53 @@
+---
+source: tests/api_regression.rs
+expression: body
+---
+{
+  "cores": [
+    {
+      "id": 0,
+      "times": {
+        "guest_nice_ticks": 0,
+        "guest_ticks": 0,
+        "idle_ticks": 4000,
+        "iowait_ticks": 100,
+        "irq_ticks": 0,
+        "nice_ticks": 5,
+        "softirq_ticks": 25,
+        "steal_ticks": 0,
+        "system_ticks": 300,
+        "user_ticks": 600
+      },
+      "usage_percent": 18.48906560636183
+    },
+    {
+      "id": 1,
+      "times": {
+        "guest_nice_ticks": 0,
+        "guest_ticks": 0,
+        "idle_ticks": 4000,
+        "iowait_ticks": 100,
+        "irq_ticks": 0,
+        "nice_ticks": 5,
+        "softirq_ticks": 25,
+        "steal_ticks": 0,
+        "system_ticks": 200,
+        "user_ticks": 400
+      },
+      "usage_percent": 13.31923890063425
+    }
+  ],
+  "total": {
+    "guest_nice_ticks": 0,
+    "guest_ticks": 0,
+    "idle_ticks": 8000,
+    "iowait_ticks": 200,
+    "irq_ticks": 0,
+    "nice_ticks": 10,
+    "softirq_ticks": 50,
+    "steal_ticks": 0,
+    "system_ticks": 500,
+    "user_ticks": 1000
+  },
+  "usage_percent": 15.983606557377051
+}
