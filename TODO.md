@@ -75,9 +75,9 @@ Status legend: `[x]` done and tested, `[ ]` not started, `[~]` partially done.
 
 ## 6. Docker
 
-- [ ] Multi-stage `Dockerfile` producing a small runtime image
-- [ ] `compose.yaml` with read-only `/proc`, `/sys`, and `/` mounts
-- [ ] Non-root runtime user; no `--privileged`
+- [x] Multi-stage `Dockerfile` producing a small runtime image
+- [x] `compose.yaml` with read-only `/proc`, `/sys`, and `/` mounts
+- [x] Non-root runtime user; no `--privileged`
 - [ ] Container health check hook (`aetherd healthcheck`)
 - [ ] Multi-architecture image builds in CI
 

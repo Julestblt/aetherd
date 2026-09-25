@@ -5,6 +5,7 @@ target
 docs
 tests
 *.md
+!README.md
 .env
 aetherd.toml
 aetherd.local.toml

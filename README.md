@@ -75,8 +75,21 @@ default-on `swagger-ui` feature is enabled.
 
 ## Docker
 
-Docker support is planned. The intended deployment uses read-only mounts for the
-host filesystem roots and a non-root runtime user.
+Build and run the container:
+
+```bash
+docker build -t aetherd:local .
+docker run --rm -p 8080:8080 \
+  -v /proc:/host/proc:ro \
+  -v /sys:/host/sys:ro \
+  -v /:/host/root:ro \
+  -e AETHERD_HTTP__BIND=0.0.0.0:8080 \
+  aetherd:local
+```
+
+`compose.yaml` provides the same configuration. The container runs as a
+non-root user with read-only host mounts, no added capabilities, and does not
+require `--privileged`.
 
 ## Roadmap
 

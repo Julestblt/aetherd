@@ -1,0 +1,28 @@
+# Runs aetherd with read-only host mounts. No privileged mode is required.
+#
+# distroless has no shell or curl, so a container health check would need a
+# reachable tool. Check /health from outside the container instead, for example:
+#   curl -fsS http://localhost:8080/health
+
+services:
+  aetherd:
+    build: .
+    image: aetherd:local
+    ports:
+      - "8080:8080"
+    environment:
+      AETHERD_HTTP__BIND: 0.0.0.0:8080
+      AETHERD_PATHS__PROC: /host/proc
+      AETHERD_PATHS__SYS: /host/sys
+      AETHERD_PATHS__HOST_ROOT: /host/root
+      RUST_LOG: info
+    volumes:
+      - /proc:/host/proc:ro
+      - /sys:/host/sys:ro
+      - /:/host/root:ro
+    read_only: true
+    cap_drop:
+      - ALL
+    security_opt:
+      - no-new-privileges:true
+    restart: unless-stopped
