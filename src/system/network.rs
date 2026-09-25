@@ -4,7 +4,7 @@ use utoipa::ToSchema;
 use super::{CollectorError, ParseError, SystemCollector, SystemPaths, read_file};
 
 /// An interface entry from `/proc/net/dev`.
-#[derive(Clone, Debug, PartialEq, Eq, Serialize, ToSchema)]
+#[derive(Clone, Debug, PartialEq, Serialize, ToSchema)]
 pub(crate) struct NetworkInterface {
     /// Interface name.
     pub name: String,
@@ -24,10 +24,18 @@ pub(crate) struct NetworkInterface {
     pub tx_errors: u64,
     /// Transmitted packets dropped since boot.
     pub tx_dropped: u64,
+    /// Receive rate over the interval since the previous sample, in bytes per
+    /// second. `null` on the first sample, after a counter reset, and for an
+    /// interface seen for the first time.
+    pub rx_bytes_per_second: Option<f64>,
+    /// Transmit rate over the interval since the previous sample, in bytes per
+    /// second. `null` on the first sample, after a counter reset, and for an
+    /// interface seen for the first time.
+    pub tx_bytes_per_second: Option<f64>,
 }
 
 /// Per-interface network counters.
-#[derive(Clone, Debug, PartialEq, Eq, Serialize, ToSchema)]
+#[derive(Clone, Debug, PartialEq, Serialize, ToSchema)]
 pub(crate) struct NetworkMetrics {
     /// One entry per network interface.
     pub interfaces: Vec<NetworkInterface>,
@@ -83,6 +91,8 @@ pub(crate) fn parse_net_dev(input: &str) -> Result<NetworkMetrics, ParseError> {
             tx_packets: read(9, "tx_packets")?,
             tx_errors: read(10, "tx_errors")?,
             tx_dropped: read(11, "tx_dropped")?,
+            rx_bytes_per_second: None,
+            tx_bytes_per_second: None,
         });
     }
 

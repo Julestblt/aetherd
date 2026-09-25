@@ -14,6 +14,14 @@ expression: body
             "minimum": 0,
             "type": "integer"
           },
+          "interval_usage_percent": {
+            "description": "Utilization over the interval since the previous sample. `null` on the\nfirst sample, after a counter reset, and for a core seen for the first\ntime.",
+            "format": "double",
+            "type": [
+              "number",
+              "null"
+            ]
+          },
           "times": {
             "$ref": "#/components/schemas/CpuTimes",
             "description": "CPU times for this core."
@@ -40,6 +48,14 @@ expression: body
               "$ref": "#/components/schemas/CpuCore"
             },
             "type": "array"
+          },
+          "interval_usage_percent": {
+            "description": "CPU utilization over the interval since the previous sample, as a\npercentage in `0..=100`. `null` on the first sample and after a counter\nreset.",
+            "format": "double",
+            "type": [
+              "number",
+              "null"
+            ]
           },
           "total": {
             "$ref": "#/components/schemas/CpuTimes",
@@ -498,6 +514,14 @@ expression: body
             "minimum": 0,
             "type": "integer"
           },
+          "rx_bytes_per_second": {
+            "description": "Receive rate over the interval since the previous sample, in bytes per\nsecond. `null` on the first sample, after a counter reset, and for an\ninterface seen for the first time.",
+            "format": "double",
+            "type": [
+              "number",
+              "null"
+            ]
+          },
           "rx_dropped": {
             "description": "Received packets dropped since boot.",
             "format": "int64",
@@ -521,6 +545,14 @@ expression: body
             "format": "int64",
             "minimum": 0,
             "type": "integer"
+          },
+          "tx_bytes_per_second": {
+            "description": "Transmit rate over the interval since the previous sample, in bytes per\nsecond. `null` on the first sample, after a counter reset, and for an\ninterface seen for the first time.",
+            "format": "double",
+            "type": [
+              "number",
+              "null"
+            ]
           },
           "tx_dropped": {
             "description": "Transmitted packets dropped since boot.",
@@ -625,6 +657,14 @@ expression: body
                       "$ref": "#/components/schemas/CpuCore"
                     },
                     "type": "array"
+                  },
+                  "interval_usage_percent": {
+                    "description": "CPU utilization over the interval since the previous sample, as a\npercentage in `0..=100`. `null` on the first sample and after a counter\nreset.",
+                    "format": "double",
+                    "type": [
+                      "number",
+                      "null"
+                    ]
                   },
                   "total": {
                     "$ref": "#/components/schemas/CpuTimes",

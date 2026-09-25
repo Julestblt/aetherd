@@ -37,6 +37,10 @@ pub(crate) struct CpuTimes {
 pub(crate) struct CpuMetrics {
     /// Average CPU utilization since boot, as a percentage in `0..=100`.
     pub usage_percent: f64,
+    /// CPU utilization over the interval since the previous sample, as a
+    /// percentage in `0..=100`. `null` on the first sample and after a counter
+    /// reset.
+    pub interval_usage_percent: Option<f64>,
     /// Aggregate CPU times across all cores.
     pub total: CpuTimes,
     /// One entry per logical CPU.
@@ -50,8 +54,32 @@ pub(crate) struct CpuCore {
     pub id: u32,
     /// Average utilization since boot, as a percentage in `0..=100`.
     pub usage_percent: f64,
+    /// Utilization over the interval since the previous sample. `null` on the
+    /// first sample, after a counter reset, and for a core seen for the first
+    /// time.
+    pub interval_usage_percent: Option<f64>,
     /// CPU times for this core.
     pub times: CpuTimes,
+}
+
+impl CpuTimes {
+    /// Total ticks, excluding guest time which is already counted in user and
+    /// nice time.
+    pub(crate) fn total_ticks(&self) -> u64 {
+        self.user_ticks
+            + self.nice_ticks
+            + self.system_ticks
+            + self.idle_ticks
+            + self.iowait_ticks
+            + self.irq_ticks
+            + self.softirq_ticks
+            + self.steal_ticks
+    }
+
+    /// Idle ticks, including time waiting for I/O.
+    pub(crate) fn idle_total_ticks(&self) -> u64 {
+        self.idle_ticks + self.iowait_ticks
+    }
 }
 
 /// Collects CPU metrics from `/proc/stat`.
@@ -97,6 +125,7 @@ pub(crate) fn parse_cpu_stat(input: &str) -> Result<CpuMetrics, ParseError> {
             cores.push(CpuCore {
                 id,
                 usage_percent: usage_percent(&times),
+                interval_usage_percent: None,
                 times,
             });
         }
@@ -106,6 +135,7 @@ pub(crate) fn parse_cpu_stat(input: &str) -> Result<CpuMetrics, ParseError> {
 
     Ok(CpuMetrics {
         usage_percent: usage_percent(&total),
+        interval_usage_percent: None,
         total,
         cores,
     })

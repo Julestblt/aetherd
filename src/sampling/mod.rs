@@ -1,6 +1,7 @@
 //! Background telemetry sampling and the shared in-memory snapshot.
 
 mod builder;
+mod delta;
 mod sampler;
 mod shutdown;
 mod snapshot;

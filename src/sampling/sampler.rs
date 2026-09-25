@@ -10,7 +10,7 @@ use crate::app::AppState;
 /// The task publishes each snapshot into the shared watch channel and stops
 /// when the application requests shutdown. It never outlives the daemon.
 pub fn spawn_sampler(state: &AppState) -> JoinHandle<()> {
-    let builder = SnapshotBuilder::new(state.paths.clone(), Arc::clone(&state.mount_stats));
+    let mut builder = SnapshotBuilder::new(state.paths.clone(), Arc::clone(&state.mount_stats));
     let snapshots = state.snapshot_sender();
     let interval = state.sampling.interval();
     let mut shutdown = state.shutdown_receiver();

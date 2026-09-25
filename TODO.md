@@ -27,8 +27,8 @@ Status legend: `[x]` done and tested, `[ ]` not started, `[~]` partially done.
 - [x] Network interface RX/TX from `/proc/net/dev`
 - [x] Background snapshot sampling runtime with a configurable interval
 - [x] In-memory latest-snapshot cache shared by REST and streaming
-- [ ] Interval-based CPU sampling derived from consecutive `/proc/stat` samples
-- [ ] Network throughput rates derived from counter deltas
+- [x] Interval-based CPU sampling derived from consecutive `/proc/stat` samples
+- [x] Network throughput rates derived from counter deltas
 - [ ] Disk I/O from `/proc/diskstats`
 - [ ] Temperatures from `/sys/class/hwmon` and `/sys/class/thermal`
 - [ ] Per-core and per-NUMA CPU breakdown

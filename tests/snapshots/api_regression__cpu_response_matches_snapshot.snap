@@ -6,6 +6,7 @@ expression: body
   "cores": [
     {
       "id": 0,
+      "interval_usage_percent": null,
       "times": {
         "guest_nice_ticks": 0,
         "guest_ticks": 0,
@@ -22,6 +23,7 @@ expression: body
     },
     {
       "id": 1,
+      "interval_usage_percent": null,
       "times": {
         "guest_nice_ticks": 0,
         "guest_ticks": 0,
@@ -37,6 +39,7 @@ expression: body
       "usage_percent": 13.31923890063425
     }
   ],
+  "interval_usage_percent": null,
   "total": {
     "guest_nice_ticks": 0,
     "guest_ticks": 0,
