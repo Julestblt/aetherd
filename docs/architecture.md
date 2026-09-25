@@ -52,6 +52,37 @@ Each system metric is a module in `src/system/` exposing:
 Adding a metric means adding one module, one handler, one route, and the schema
 registration. It does not change other collectors.
 
+## Sampling and distribution
+
+Collecting every metric on every request does not scale and makes live updates
+awkward, so collection is decoupled from serving:
+
+```
+/proc + /sys + statvfs
+        |
+  background sampler (one task, fixed interval)
+        |
+  SystemSnapshot (partial sections, interval metrics)
+        |
+  tokio::sync::watch<Option<Arc<SystemSnapshot>>>
+        |
+        +--> REST reads the latest snapshot
+        +--> SSE subscribers receive each new snapshot
+```
+
+- `sampling::SnapshotBuilder` performs one synchronous collection pass, keeping
+  the previous CPU and network readings so interval-derived values can be
+  computed. It takes the sample time as an argument, which keeps it
+  deterministic and testable.
+- `sampling::spawn_sampler` runs a single loop: collect, publish, wait for the
+  next tick or shutdown. There is no worker pool, and the task stops on
+  application shutdown.
+- The shared value is an `Option<Arc<SystemSnapshot>>`. `None` means "no sample
+  yet" and is reported as a `not_ready` error rather than placeholder data.
+  `Arc` lets readers share the snapshot without cloning it.
+- `watch` keeps only the latest value, so a slow SSE client misses intermediate
+  samples instead of accumulating an unbounded queue.
+
 ## Filesystem roots
 
 All file access goes through `SystemPaths { proc, sys, host_root }`. A path such

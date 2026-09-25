@@ -12,8 +12,13 @@ health is unversioned.
 - **Byte counts** are `u64` bytes.
 - **Durations, load, and idle time** are `f64` seconds.
 - **Utilization** is a `f64` percentage in `0..=100`.
+- **Rates** are `f64` bytes per second.
 - **CPU ticks** are `u64` clock ticks in `USER_HZ` (conventionally 100/second).
 - **Counters** are `u64` values accumulated since boot.
+- **Interval-derived** values (`interval_usage_percent`, `rx_bytes_per_second`,
+  `tx_bytes_per_second`) are `null` on the first sample, after a counter reset,
+  and for a source seen for the first time. They are never replaced by a
+  synthetic zero.
 
 ## Endpoints
 
@@ -27,10 +32,52 @@ health is unversioned.
 | GET | `/v1/system/load` | Load average and process counts. |
 | GET | `/v1/system/uptime` | System uptime and idle time. |
 | GET | `/v1/system/disks` | Mounted filesystems and capacity, excluding pseudo-filesystems. |
-| GET | `/v1/system/network` | Per-interface RX/TX counters. |
+| GET | `/v1/system/network` | Per-interface RX/TX counters and interval rates. |
+| GET | `/v1/system/stream` | Server-Sent Events stream of the latest snapshot. |
 
-Per-metric endpoints return `200` with the metric, or `503` with a structured
-error when that metric cannot be collected on the current host.
+Per-metric endpoints return `200` with the latest sampled section, or `503`
+with a structured error when the snapshot is not ready yet or that metric is
+unavailable.
+
+## Sampling and freshness
+
+A single background task samples the complete system on a fixed interval
+(one second by default, see [configuration](configuration.md)) and stores the
+latest `SystemSnapshot` in memory. REST reads that snapshot; it does not reread
+`/proc` or call `statvfs` per request. `/v1/system` returns the whole snapshot;
+metric endpoints return the matching section.
+
+Because sampling is interval-based, some values need a previous sample:
+
+- `cpu.interval_usage_percent` (and per core) is the utilization over the
+  interval between the two most recent samples. `cpu.usage_percent` remains the
+  cumulative average since boot.
+- `network.interfaces[].rx_bytes_per_second` and `tx_bytes_per_second` are
+  derived from counter deltas over the same interval. The cumulative `rx_bytes`
+  and `tx_bytes` counters are still reported.
+
+If the daemon has not produced its first snapshot yet, every system endpoint
+returns `503` with error code `not_ready` instead of inventing data.
+
+## Live stream
+
+`GET /v1/system/stream` is a Server-Sent Events stream with
+`Content-Type: text/event-stream`. Each event is named `system` and its `data`
+is a `SystemSnapshot` serialized as JSON:
+
+```text
+event: system
+data: {"collected_at":"2026-09-25T22:13:20Z","host":{...},...}
+```
+
+- A client receives the current snapshot immediately on connect, then one event
+  per new sample.
+- Clients that read slowly miss intermediate samples rather than queueing them:
+  the stream always delivers the latest value, so per-client memory stays
+  bounded.
+- A disconnected or slow client never affects the sampler or other clients.
+- A keep-alive comment is sent periodically, and shutdown terminates open
+  streams cleanly.
 
 ## Partial data
 
@@ -72,7 +119,8 @@ Every failing request returns the same envelope:
 ```
 
 Codes are stable and machine-readable: `not_found`, `method_not_allowed`,
-`unavailable`. Messages never expose secrets or internal implementation details.
+`not_ready`, `unavailable`. Messages never expose secrets or internal
+implementation details.
 
 ## OpenAPI and Swagger UI
 

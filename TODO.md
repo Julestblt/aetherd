@@ -30,6 +30,7 @@ Status legend: `[x]` done and tested, `[ ]` not started, `[~]` partially done.
 - [x] Interval-based CPU sampling derived from consecutive `/proc/stat` samples
 - [x] Network throughput rates derived from counter deltas
 - [ ] Disk I/O from `/proc/diskstats`
+- [ ] Offload sampling to `spawn_blocking` if profiling shows runtime impact
 - [ ] Temperatures from `/sys/class/hwmon` and `/sys/class/thermal`
 - [ ] Per-core and per-NUMA CPU breakdown
 - [ ] Process information and counts
@@ -49,6 +50,7 @@ Status legend: `[x]` done and tested, `[ ]` not started, `[~]` partially done.
 - [x] `GET /v1/system/disks` with explicit pseudo-filesystem filtering
 - [x] `GET /v1/system/network`
 - [x] `GET /v1/system/stream` Server-Sent Events live stream
+- [ ] SSE event identifiers and replay for reconnecting clients
 - [x] Machine-readable, consistent error schema
 - [x] Consistent units and RFC3339 UTC timestamps documented in schemas
 - [ ] Optional authentication for exposed deployments

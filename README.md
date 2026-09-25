@@ -15,16 +15,34 @@ Implemented today:
 
 - Configuration from defaults, an optional TOML file, and `AETHERD_` environment
   variables
+- A background sampler (one second by default, configurable) that keeps the
+  latest `SystemSnapshot` in memory; REST reads it instead of rereading `/proc`
 - Structured `tracing`, graceful shutdown, and a Docker image
 - `GET /health`
 - `GET /v1/system` plus `host`, `cpu`, `memory`, `load`, `uptime`, `disks`, and
-  `network` endpoints
+  `network` endpoints, with interval-based CPU utilization and network rates
+- `GET /v1/system/stream`, a Server-Sent Events stream of the latest snapshot
 - OpenAPI 3.1 generated from Rust types, with Swagger UI
 - Deterministic tests over fixtures, with no dependency on the developer's host
 
-Not implemented yet: AI usage providers, interval-based CPU sampling, disk I/O
-counters, temperatures, and process/container telemetry. `TODO.md` is the
-canonical roadmap and is the source of truth for what exists.
+Not implemented yet: AI usage providers, disk I/O counters, temperatures, and
+process/container telemetry. `TODO.md` is the canonical roadmap and is the source
+of truth for what exists.
+
+## Live metrics
+
+A single background task samples the whole system on a fixed interval and
+publishes each `SystemSnapshot` into an in-memory `watch` channel. REST
+endpoints read the latest snapshot, and `GET /v1/system/stream` streams each new
+snapshot as a Server-Sent Event:
+
+```bash
+curl -N http://localhost:8080/v1/system/stream
+```
+
+Interval-derived values (CPU utilization over the sample interval, network
+RX/TX bytes per second) are `null` until a previous sample exists and are never
+faked. See [`docs/api.md`](docs/api.md).
 
 ## Supported collectors
 

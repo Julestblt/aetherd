@@ -27,9 +27,18 @@ fails loudly instead of being ignored.
 | `paths.proc` | `AETHERD_PATHS__PROC` | `/proc` | procfs root. |
 | `paths.sys` | `AETHERD_PATHS__SYS` | `/sys` | sysfs root. |
 | `paths.host_root` | `AETHERD_PATHS__HOST_ROOT` | `/` | Host filesystem root. |
+| `sampling.interval_ms` | `AETHERD_SAMPLING__INTERVAL_MS` | `1000` | Background sampling interval, in milliseconds. |
 
 Log verbosity is controlled by the standard `RUST_LOG` environment variable
 (for example `RUST_LOG=info,aetherd=debug`).
+
+## Sampling
+
+One background task samples the whole system on `sampling.interval_ms` and keeps
+the latest snapshot in memory for REST and the SSE stream. The interval must be
+between `100` and `3600000` milliseconds; any other value is rejected at
+startup with a clear error. Shorter intervals give fresher values and more CPU
+and I/O, so the default of one second is a reasonable balance.
 
 ## TOML example
 
@@ -41,6 +50,9 @@ bind = "0.0.0.0:8080"
 proc = "/host/proc"
 sys = "/host/sys"
 host_root = "/host/root"
+
+[sampling]
+interval_ms = 1000
 ```
 
 ## Container example

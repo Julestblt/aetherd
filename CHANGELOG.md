@@ -7,6 +7,26 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- Background system sampler with a configurable interval
+  (`AETHERD_SAMPLING__INTERVAL_MS`, default `1000`), publishing into an
+  in-memory latest-snapshot cache.
+- `GET /v1/system/stream`, a Server-Sent Events stream (`event: system`) that
+  sends the current snapshot on connect and each new sample afterwards.
+- Interval-based CPU utilization (`interval_usage_percent` on the aggregate and
+  every core) and network RX/TX rates (`rx_bytes_per_second`,
+  `tx_bytes_per_second`) derived from consecutive samples.
+- `not_ready` error code returned when no snapshot has been sampled yet.
+
+### Changed
+
+- REST endpoints now read the latest sampled snapshot instead of collecting on
+  every request. Response shapes are unchanged except for the additive interval
+  fields.
+- The generated OpenAPI document no longer advertises non-functional
+  unprefixed system paths; nested routes appear only under `/v1/system`.
+
 ## [0.1.0] - 2026-09-25
 
 First release. A working Linux system-telemetry slice; AI provider support is
