@@ -98,10 +98,17 @@ Status legend: `[x]` done and tested, `[ ]` not started, `[~]` partially done.
 - [ ] Property tests for parsers with wide input spaces
 - [ ] API response snapshot tests for contract stability
 
-## 9. Documentation
+## 10. Documentation
 
 - [ ] `README.md` describing status, usage, and configuration
-- [ ] `docs/architecture.md`
+- [x] `docs/architecture.md`
 - [ ] `docs/api.md` including Postman import
 - [ ] `docs/configuration.md`
 - [ ] Deployment guide for common reverse proxies
+
+## 11. Continuous integration
+
+- [x] GitHub Actions workflow running format, clippy, tests, and MSRV build
+- [x] Dependency advisory audit (`cargo audit`)
+- [ ] Scheduled feature-powerset check (`cargo hack`)
+- [ ] Multi-architecture build matrix
