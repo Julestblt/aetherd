@@ -1,8 +1,11 @@
 //! Linux telemetry domain: typed metrics and `/proc`, `/sys` parsers.
 
 pub(crate) mod cpu;
+pub(crate) mod host;
+pub(crate) mod load;
 pub(crate) mod memory;
 mod paths;
+pub(crate) mod uptime;
 
 use std::path::PathBuf;
 

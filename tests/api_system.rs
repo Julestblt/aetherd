@@ -44,3 +44,54 @@ async fn memory_is_unavailable_when_meminfo_is_missing() {
     assert_eq!(status, StatusCode::SERVICE_UNAVAILABLE);
     assert_eq!(body["error"]["code"], "unavailable");
 }
+
+#[tokio::test]
+async fn host_returns_fixture_metadata() {
+    let (status, body) = common::get("/v1/system/host").await;
+
+    assert_eq!(status, StatusCode::OK);
+    assert_eq!(body["hostname"], "aetherd-test-host");
+    assert_eq!(body["kernel_release"], "6.8.0-aetherd");
+    assert_eq!(body["os"]["id"], "aetherd-test");
+    assert_eq!(body["os"]["pretty_name"], "Aetherd Test Linux 1.0");
+    assert!(body["boot_time"].is_string());
+}
+
+#[tokio::test]
+async fn load_returns_fixture_metrics() {
+    let (status, body) = common::get("/v1/system/load").await;
+
+    assert_eq!(status, StatusCode::OK);
+    assert_eq!(body["load1"], 1.5);
+    assert_eq!(body["runnable"], 2);
+    assert_eq!(body["total_processes"], 1234);
+}
+
+#[tokio::test]
+async fn uptime_returns_fixture_metrics() {
+    let (status, body) = common::get("/v1/system/uptime").await;
+
+    assert_eq!(status, StatusCode::OK);
+    assert_eq!(body["uptime_seconds"], 12345.67);
+    assert_eq!(body["idle_seconds"], 89012.34);
+}
+
+#[tokio::test]
+async fn load_is_unavailable_when_loadavg_is_missing() {
+    let paths = SystemPaths::new("/nonexistent/proc", "/nonexistent/sys", "/");
+    let (status, body) = common::get_for(common::app_with(paths), "/v1/system/load").await;
+
+    assert_eq!(status, StatusCode::SERVICE_UNAVAILABLE);
+    assert_eq!(body["error"]["code"], "unavailable");
+}
+
+#[tokio::test]
+async fn host_tolerates_missing_metadata() {
+    let paths = SystemPaths::new("/nonexistent/proc", "/nonexistent/sys", "/nonexistent/root");
+    let (status, body) = common::get_for(common::app_with(paths), "/v1/system/host").await;
+
+    assert_eq!(status, StatusCode::OK);
+    assert_eq!(body["hostname"], serde_json::Value::Null);
+    assert_eq!(body["os"], serde_json::Value::Null);
+    assert!(body["architecture"].is_string());
+}

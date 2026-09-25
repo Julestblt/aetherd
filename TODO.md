@@ -18,11 +18,11 @@ Status legend: `[x]` done and tested, `[ ]` not started, `[~]` partially done.
 
 ## 2. System telemetry collectors
 
-- [ ] Host information (hostname, OS, kernel, architecture, boot time)
+- [x] Host information (hostname, OS, kernel, architecture, boot time)
 - [x] CPU times and since-boot utilization from `/proc/stat`
 - [x] Memory and swap from `/proc/meminfo`
-- [ ] Load average and process counts from `/proc/loadavg`
-- [ ] Uptime and idle time from `/proc/uptime`
+- [x] Load average and process counts from `/proc/loadavg`
+- [x] Uptime and idle time from `/proc/uptime`
 - [ ] Filesystems and usage from `/proc/mounts` + `statvfs`
 - [ ] Network interface RX/TX from `/proc/net/dev`
 - [ ] Interval-based CPU sampling (next improvement on top of since-boot)
@@ -38,11 +38,11 @@ Status legend: `[x]` done and tested, `[ ]` not started, `[~]` partially done.
 - [x] Versioned `/v1` route structure
 - [x] `GET /health` liveness endpoint
 - [ ] `GET /v1/system` aggregated overview with partial-data handling
-- [ ] `GET /v1/system/host`
+- [x] `GET /v1/system/host`
 - [x] `GET /v1/system/cpu`
 - [x] `GET /v1/system/memory`
-- [ ] `GET /v1/system/load`
-- [ ] `GET /v1/system/uptime`
+- [x] `GET /v1/system/load`
+- [x] `GET /v1/system/uptime`
 - [ ] `GET /v1/system/disks` with explicit pseudo-filesystem filtering
 - [ ] `GET /v1/system/network`
 - [x] Machine-readable, consistent error schema

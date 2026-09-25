@@ -47,7 +47,10 @@ pub fn build_router(state: AppState) -> Router {
 fn build_parts() -> (Router<AppState>, utoipa::openapi::OpenApi) {
     let system = OpenApiRouter::new()
         .routes(routes!(system_api::cpu))
-        .routes(routes!(system_api::memory));
+        .routes(routes!(system_api::memory))
+        .routes(routes!(system_api::host))
+        .routes(routes!(system_api::load))
+        .routes(routes!(system_api::uptime));
 
     OpenApiRouter::with_openapi(ApiDoc::openapi())
         .routes(routes!(health::health))
