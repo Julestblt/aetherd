@@ -36,7 +36,7 @@ Status legend: `[x]` done and tested, `[ ]` not started, `[~]` partially done.
 ## 3. API
 
 - [ ] Versioned `/v1` route structure
-- [ ] `GET /health` liveness endpoint
+- [x] `GET /health` liveness endpoint
 - [ ] `GET /v1/system` aggregated overview with partial-data handling
 - [ ] `GET /v1/system/host`
 - [ ] `GET /v1/system/cpu`
@@ -45,15 +45,15 @@ Status legend: `[x]` done and tested, `[ ]` not started, `[~]` partially done.
 - [ ] `GET /v1/system/uptime`
 - [ ] `GET /v1/system/disks` with explicit pseudo-filesystem filtering
 - [ ] `GET /v1/system/network`
-- [ ] Machine-readable, consistent error schema
+- [x] Machine-readable, consistent error schema
 - [ ] Consistent units and RFC3339 UTC timestamps documented in schemas
 - [ ] Optional authentication for exposed deployments
 - [ ] Request rate limiting
 
 ## 4. OpenAPI documentation
 
-- [ ] Compile-time generated OpenAPI from Rust types
-- [ ] `/openapi.json` always available, independent of the UI
+- [x] Compile-time generated OpenAPI from Rust types
+- [x] `/openapi.json` always available, independent of the UI
 - [ ] Swagger UI behind the default-on `swagger-ui` feature
 - [ ] Documented Postman import from the OpenAPI spec
 - [ ] API-level golden tests pinning the spec
@@ -90,9 +90,9 @@ Status legend: `[x]` done and tested, `[ ]` not started, `[~]` partially done.
 ## 8. Testing
 
 - [ ] Unit tests for every parser (valid, malformed, missing, partial)
-- [ ] Integration tests over the Axum router without a live server
+- [x] Integration tests over the Axum router without a live server
 - [ ] Deterministic fixtures via configurable filesystem roots
-- [ ] HTTP status code and error schema regression coverage
+- [x] HTTP status code and error schema regression coverage
 - [ ] Property tests for parsers with wide input spaces
 - [ ] API response snapshot tests for contract stability
 
