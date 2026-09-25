@@ -112,3 +112,8 @@ Status legend: `[x]` done and tested, `[ ]` not started, `[~]` partially done.
 - [x] Dependency advisory audit (`cargo audit`)
 - [ ] Scheduled feature-powerset check (`cargo hack`)
 - [ ] Multi-architecture build matrix
+
+## 12. Agent maintenance
+
+- [x] Project-local skills for adding a collector, an endpoint, and a provider
+- [ ] Revisit skills when the provider domain lands

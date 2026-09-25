@@ -74,6 +74,11 @@ Extension seams:
 ## Skills
 
 The vendored skills in `.agents/skills/` cover Rust craft (errors, testing,
-async, observability, API design). Project-local skills in the same directory
-cover recurring aetherd workflows (adding a collector, an endpoint, a provider).
+async, observability, API design). Project-local skills cover recurring aetherd
+workflows and must be followed for those changes:
+
+- `aetherd-add-system-collector` — a new `/proc` or `/sys` metric.
+- `aetherd-add-api-endpoint` — a new or changed HTTP route, schema, or error.
+- `aetherd-add-ai-provider` — provider support behind the provider seam.
+
 Consult them rather than duplicating their guidance here.

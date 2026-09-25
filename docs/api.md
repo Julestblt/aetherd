@@ -54,7 +54,7 @@ sections that did succeed.
 kernel-internal filesystems from the response: `proc`, `sysfs`, `cgroup`,
 `cgroup2`, `devtmpfs`, `devpts`, `tmpfs`, `overlay`, `debugfs`, `tracefs`,
 `securityfs`, `pstore`, `bpf`, `configfs`, `mqueue`, `hugetlbfs`, `fusectl`,
-`autofs`, `binfmt_misc`, `efivarfs`, `nsfs`, `ramfs`, and `securityfs`. The
+`autofs`, `binfmt_misc`, `efivarfs`, `nsfs`, and `ramfs`. The
 filter list is a single constant in `src/system/disks.rs`; changing the policy
 is a one-line change with tests in the same module.
 
