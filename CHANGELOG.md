@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.3.0] - 2026-09-27
+
 ### Added
 
 - Optional Tailscale tailnet telemetry from the official HTTP API, exposed as
@@ -79,6 +81,7 @@ planned and not part of this release.
 - CI workflow covering formatting, clippy, tests, the Rust 1.88 MSRV build, and
   dependency auditing.
 
-[Unreleased]: https://github.com/Julestblt/aetherd/compare/v0.2.0...HEAD
+[Unreleased]: https://github.com/Julestblt/aetherd/compare/v0.3.0...HEAD
+[0.3.0]: https://github.com/Julestblt/aetherd/releases/tag/v0.3.0
 [0.2.0]: https://github.com/Julestblt/aetherd/releases/tag/v0.2.0
 [0.1.0]: https://github.com/Julestblt/aetherd/releases/tag/v0.1.0
