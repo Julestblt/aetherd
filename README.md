@@ -19,8 +19,11 @@ Implemented today:
   latest `SystemSnapshot` in memory; REST reads it instead of rereading `/proc`
 - Structured `tracing`, graceful shutdown, and a Docker image
 - `GET /health`
-- `GET /v1/system` plus `host`, `cpu`, `memory`, `load`, `uptime`, `disks`, and
-  `network` endpoints, with interval-based CPU utilization and network rates
+- `GET /v1/system` plus `host`, `cpu`, `memory`, `load`, `uptime`, `disks`,
+  `network`, and `tailscale` endpoints, with interval-based CPU utilization and
+  network rates
+- Optional Tailscale tailnet machines from the official HTTP API, refreshed on
+  its own schedule (60 seconds by default), independent of system sampling
 - `GET /v1/system/stream`, a Server-Sent Events stream of the latest snapshot
 - OpenAPI 3.1 generated from Rust types, with Swagger UI
 - Deterministic tests over fixtures, with no dependency on the developer's host
@@ -55,12 +58,14 @@ faked. See [`docs/api.md`](docs/api.md).
 | Uptime | `/proc/uptime` | `/v1/system/uptime` |
 | Disks | `/proc/mounts` + `statvfs` | `/v1/system/disks` |
 | Network | `/proc/net/dev` | `/v1/system/network` |
+| Tailscale | Tailscale HTTP API | `/v1/system/tailscale` |
 
 ## Architecture
 
 ```
 src/config/     layered configuration (defaults -> optional TOML -> env)
 src/system/     Linux telemetry domain: typed metrics + /proc,/sys parsers
+src/tailscale/  optional Tailscale HTTP API client, cache, and refresher
 src/providers/  (planned) modular AI usage providers behind a registry
 src/api/        HTTP contract: versioned routes, schemas, error responses
 src/app.rs      composition root: AppState + router assembly
@@ -75,7 +80,9 @@ Key ideas:
 - **Partial data is normal.** A missing sensor or mount never fails an aggregate
   response; per-section availability is explicit.
 - **Providers stay isolated.** An unavailable or failing AI provider will never
-  make the daemon unavailable.
+  make the daemon unavailable. Optional Tailscale telemetry follows the same
+  rule: a disabled, misconfigured, or failing integration never stops the
+  daemon or the rest of the system snapshot.
 
 See [`docs/architecture.md`](docs/architecture.md) for the long form.
 
@@ -134,7 +141,24 @@ docker run --rm -p 8080:8080 \
 ```
 
 `compose.yaml` provides the same setup. The image runs as a non-root user with
-read-only host mounts and no added capabilities.
+read-only host mounts and no added capabilities, and it needs neither the
+`tailscale` CLI nor a host Tailscale socket.
+
+Tailscale telemetry is optional. Enable it with environment variables; supply
+the API key from your secret store:
+
+```bash
+docker run --rm -p 8080:8080 \
+  -v /proc:/host/proc:ro \
+  -v /sys:/host/sys:ro \
+  -v /:/host/root:ro \
+  -e AETHERD_HTTP__BIND=0.0.0.0:8080 \
+  -e AETHERD_TAILSCALE__ENABLED=true \
+  -e AETHERD_TAILSCALE__TAILNET=example.ts.net \
+  -e AETHERD_TAILSCALE__API_KEY="$TAILSCALE_API_KEY" \
+  -e AETHERD_TAILSCALE__REFRESH_INTERVAL_SECONDS=60 \
+  aetherd:local
+```
 
 ## Roadmap
 

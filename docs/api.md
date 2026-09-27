@@ -33,6 +33,7 @@ health is unversioned.
 | GET | `/v1/system/uptime` | System uptime and idle time. |
 | GET | `/v1/system/disks` | Mounted filesystems and capacity, excluding pseudo-filesystems. |
 | GET | `/v1/system/network` | Per-interface RX/TX counters and interval rates. |
+| GET | `/v1/system/tailscale` | Tailnet machines from the last Tailscale refresh. |
 | GET | `/v1/system/stream` | Server-Sent Events stream of the latest snapshot. |
 
 Per-metric endpoints return `200` with the latest sampled section, or `503`
@@ -58,6 +59,49 @@ Because sampling is interval-based, some values need a previous sample:
 
 If the daemon has not produced its first snapshot yet, every system endpoint
 returns `503` with error code `not_ready` instead of inventing data.
+
+## Tailscale telemetry
+
+Tailscale machines are optional and read from the official Tailscale HTTP API
+(`GET /api/v2/tailnet/{tailnet}/devices`); no `tailscale` CLI or host socket is
+required. The integration stays off unless `tailscale.enabled` is true and both
+a tailnet and an API key are configured. A missing or disabled configuration is
+not an error: the daemon starts, and the `tailscale` section reports why it is
+unavailable.
+
+Tailscale refreshes on its own schedule (`tailscale.refresh_interval_seconds`,
+`60` seconds by default) and is never fetched once per system sample. The
+sampler reads the latest cached Tailscale section, so `GET /v1/system`,
+`GET /v1/system/tailscale`, and `GET /v1/system/stream` keep serving the most
+recent refresh even though system metrics update once per second.
+
+A failed refresh (timeout, `401`/`403`, invalid JSON, unreachable host) replaces
+the section with `unavailable` and its reason until the next successful refresh.
+The daemon stays healthy and every other section keeps updating.
+
+Device fields are a small, stable projection of the upstream object:
+
+```json
+{
+  "id": "node-1",
+  "hostname": "homelab",
+  "dns_name": "homelab.example.ts.net",
+  "os": "linux",
+  "addresses": ["100.64.0.1"],
+  "online": true,
+  "last_seen": "2026-09-25T22:13:20Z",
+  "authorized": true,
+  "tags": ["tag:homelab"]
+}
+```
+
+The Tailscale API exposes no online flag, so `online` is inferred from
+`last_seen`: a device is online when its last handshake is less than 120 seconds
+before the refresh timestamp. The threshold is a single constant
+(`ONLINE_THRESHOLD_SECONDS` in `src/tailscale/model.rs`), and it is an
+approximation, not an authoritative state. `last_seen` is always reported so a
+client can distinguish online, recently seen, and offline; an absent or
+unparseable timestamp becomes `null` and counts as offline.
 
 ## Live stream
 

@@ -7,6 +7,22 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- Optional Tailscale tailnet telemetry from the official HTTP API, exposed as
+  `GET /v1/system/tailscale` and as an additive `tailscale` section of
+  `GET /v1/system` and the SSE stream. Tailscale refreshes on its own schedule
+  (`AETHERD_TAILSCALE__REFRESH_INTERVAL_SECONDS`, default `60`) instead of once
+  per system sample, and a disabled, misconfigured, or failing integration never
+  affects the daemon or the other metrics.
+- A redacting `SecretString` configuration type for server-side credentials; the
+  Tailscale API key is never logged, serialized, or returned by an endpoint.
+
+### Changed
+
+- `GET /v1/system` and `GET /v1/system/stream` carry an additive `tailscale`
+  section. Existing sections and routes are unchanged.
+
 ## [0.2.0] - 2026-09-25
 
 ### Added

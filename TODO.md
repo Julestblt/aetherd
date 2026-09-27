@@ -35,7 +35,14 @@ Status legend: `[x]` done and tested, `[ ]` not started, `[~]` partially done.
 - [ ] Per-core and per-NUMA CPU breakdown
 - [ ] Process information and counts
 - [ ] Docker/container telemetry
-- [ ] Configurable collector enable/disable
+- [x] Configurable collector enable/disable
+- [x] Optional Tailscale tailnet machines from the official HTTP API, with a
+      refresh cache independent of the system sampling interval
+- [ ] Tailscale stale-value metadata instead of `unavailable` on a failed
+      refresh
+- [ ] Tailscale device owner, client version, and exit-node status
+- [x] `/v1/system/tailscale` section endpoint
+- [ ] Per-metric collector enable/disable flags beyond Tailscale
 
 ## 3. API
 
@@ -49,6 +56,8 @@ Status legend: `[x]` done and tested, `[ ]` not started, `[~]` partially done.
 - [x] `GET /v1/system/uptime`
 - [x] `GET /v1/system/disks` with explicit pseudo-filesystem filtering
 - [x] `GET /v1/system/network`
+- [x] `GET /v1/system/tailscale` with its own refresh interval and failure
+      isolation
 - [x] `GET /v1/system/stream` Server-Sent Events live stream
 - [ ] SSE event identifiers and replay for reconnecting clients
 - [x] Machine-readable, consistent error schema
@@ -90,7 +99,7 @@ Status legend: `[x]` done and tested, `[ ]` not started, `[~]` partially done.
 ## 7. Observability and security
 
 - [x] Structured request tracing with latency and status
-- [ ] No secret logging; redacting `SecretString` type
+- [x] No secret logging; redacting `SecretString` type
 - [ ] Prometheus metrics endpoint
 - [ ] Optional API authentication and TLS termination guidance
 - [ ] Dependency and supply-chain gate (`cargo deny`)

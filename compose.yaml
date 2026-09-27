@@ -16,6 +16,12 @@ services:
       AETHERD_PATHS__SYS: /host/sys
       AETHERD_PATHS__HOST_ROOT: /host/root
       RUST_LOG: info
+      # Optional Tailscale telemetry. Uncomment and supply the API key from your
+      # secret store; no tailscale CLI or host socket is required.
+      # AETHERD_TAILSCALE__ENABLED: "true"
+      # AETHERD_TAILSCALE__TAILNET: example.ts.net
+      # AETHERD_TAILSCALE__API_KEY: ${TAILSCALE_API_KEY:?}
+      # AETHERD_TAILSCALE__REFRESH_INTERVAL_SECONDS: "60"
     volumes:
       - /proc:/host/proc:ro
       - /sys:/host/sys:ro
