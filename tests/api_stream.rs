@@ -117,6 +117,25 @@ async fn shutdown_ends_open_streams() {
 }
 
 #[tokio::test]
+async fn stream_includes_the_cached_tailscale_section() {
+    let state = common::state_with_tailscale();
+    let router = aetherd::build_router(state);
+
+    let (_, _, mut body) = common::open_stream(router, "/v1/system/stream").await;
+    let event = timeout(Duration::from_secs(1), common::next_event(&mut body))
+        .await
+        .expect("first event arrives")
+        .expect("stream is not empty");
+    let data = data_of(&event);
+
+    assert_eq!(data["tailscale"]["status"], "available");
+    assert_eq!(
+        data["tailscale"]["value"]["devices"][0]["hostname"],
+        "homelab"
+    );
+}
+
+#[tokio::test]
 async fn stream_marks_unavailable_sections() {
     let paths = aetherd::SystemPaths::new("/nonexistent/proc", "/nonexistent/sys", "/");
     let state = common::state_with(paths);
@@ -131,4 +150,9 @@ async fn stream_marks_unavailable_sections() {
 
     assert_eq!(data["cpu"]["status"], "unavailable");
     assert!(data["cpu"]["reason"].is_string());
+    assert_eq!(data["tailscale"]["status"], "unavailable");
+    assert_eq!(
+        data["tailscale"]["reason"],
+        "tailscale integration is disabled"
+    );
 }

@@ -20,9 +20,13 @@ use http_body_util::BodyExt;
 use time::OffsetDateTime;
 use tower::ServiceExt;
 
-use aetherd::{AppState, DiskUsage, MountStats, SnapshotBuilder, SystemPaths, build_router};
+use aetherd::{
+    AppState, DiskUsage, MountStats, SecretString, SnapshotBuilder, SystemPaths, TailscaleConfig,
+    TailscaleDevice, TailscaleSnapshot, build_router,
+};
 
 pub(crate) const SAMPLE_TIME_UNIX: i64 = 1_700_000_000;
+pub(crate) const TAILSCALE_API_KEY: &str = "tskey-test-secret";
 
 pub(crate) fn sample_time() -> OffsetDateTime {
     OffsetDateTime::from_unix_timestamp(SAMPLE_TIME_UNIX).expect("valid sample timestamp")
@@ -77,6 +81,46 @@ pub(crate) fn state_with_mount_stats(
 
 pub(crate) fn state_with(paths: SystemPaths) -> AppState {
     state_with_mount_stats(paths, Arc::new(FakeMountStats::default()))
+}
+
+pub(crate) fn tailscale_config() -> TailscaleConfig {
+    TailscaleConfig {
+        enabled: true,
+        tailnet: "example.ts.net".to_owned(),
+        api_key: SecretString::new(TAILSCALE_API_KEY),
+        refresh_interval_seconds: 60,
+    }
+}
+
+pub(crate) fn tailscale_snapshot() -> TailscaleSnapshot {
+    TailscaleSnapshot {
+        collected_at: sample_time(),
+        tailnet: "example.ts.net".to_owned(),
+        devices: vec![TailscaleDevice {
+            id: "node-1".to_owned(),
+            hostname: "homelab".to_owned(),
+            dns_name: "homelab.example.ts.net".to_owned(),
+            os: "linux".to_owned(),
+            addresses: vec!["100.64.0.1".to_owned()],
+            online: true,
+            last_seen: Some(sample_time()),
+            authorized: true,
+            tags: vec!["tag:homelab".to_owned()],
+        }],
+    }
+}
+
+pub(crate) fn state_with_tailscale() -> AppState {
+    let state = AppState::with_mount_stats(fixture_paths(), Arc::new(FakeMountStats::default()))
+        .with_tailscale(tailscale_config());
+    state.publish_tailscale(tailscale_snapshot());
+    let snapshot = state.snapshot_builder().collect(sample_time());
+    state.publish(snapshot);
+    state
+}
+
+pub(crate) fn app_with_tailscale() -> Router {
+    build_router(state_with_tailscale())
 }
 
 pub(crate) fn unpublished_state(paths: SystemPaths, mount_stats: Arc<dyn MountStats>) -> AppState {
@@ -134,7 +178,14 @@ pub(crate) async fn send_for(
 }
 
 pub(crate) async fn get_text(uri: &str) -> (StatusCode, Option<String>, String) {
-    let response = app()
+    get_text_for(app(), uri).await
+}
+
+pub(crate) async fn get_text_for(
+    router: Router,
+    uri: &str,
+) -> (StatusCode, Option<String>, String) {
+    let response = router
         .oneshot(
             Request::builder()
                 .uri(uri)

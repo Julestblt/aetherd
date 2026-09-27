@@ -16,6 +16,7 @@ async fn openapi_documents_health_path_and_schema() {
     assert!(body["paths"]["/v1/system/memory"].is_object());
     assert!(body["paths"]["/v1/system/disks"].is_object());
     assert!(body["paths"]["/v1/system/network"].is_object());
+    assert!(body["paths"]["/v1/system/tailscale"].is_object());
     assert!(body["paths"]["/v1/system/stream"].is_object());
     assert!(
         body["paths"].get("/cpu").is_none(),
@@ -25,6 +26,8 @@ async fn openapi_documents_health_path_and_schema() {
     assert!(body["components"]["schemas"]["CpuMetrics"].is_object());
     assert!(body["components"]["schemas"]["MemoryMetrics"].is_object());
     assert!(body["components"]["schemas"]["DisksMetrics"].is_object());
+    assert!(body["components"]["schemas"]["TailscaleSnapshot"].is_object());
+    assert!(body["components"]["schemas"]["TailscaleDevice"].is_object());
     assert!(body["components"]["schemas"]["ErrorResponse"].is_object());
 }
 
