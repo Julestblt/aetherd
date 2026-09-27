@@ -9,9 +9,10 @@ use utoipa_axum::router::OpenApiRouter;
 use utoipa_axum::routes;
 
 use crate::api::{ApiDoc, error, health, system as system_api};
-use crate::config::SamplingConfig;
-use crate::sampling::{Shutdown, SystemSnapshot};
+use crate::config::{SamplingConfig, TailscaleConfig, TailscaleUnavailable};
+use crate::sampling::{Section, Shutdown, SnapshotBuilder, SystemSnapshot};
 use crate::system::{MountStats, RealMountStats, SystemPaths};
+use crate::tailscale::{TailscaleCache, TailscaleSnapshot, initial_section};
 
 /// Shared state handed to every request handler.
 #[derive(Clone, Debug)]
@@ -20,6 +21,8 @@ pub struct AppState {
     pub(crate) paths: SystemPaths,
     pub(crate) mount_stats: Arc<dyn MountStats>,
     pub(crate) sampling: SamplingConfig,
+    tailscale: TailscaleConfig,
+    tailscale_cache: TailscaleCache,
     snapshots: watch::Sender<Option<Arc<SystemSnapshot>>>,
     shutdown: watch::Sender<bool>,
 }
@@ -61,9 +64,35 @@ impl AppState {
             paths,
             mount_stats,
             sampling,
+            tailscale: TailscaleConfig::default(),
+            tailscale_cache: TailscaleCache::unavailable(TailscaleUnavailable::Disabled.reason()),
             snapshots,
             shutdown,
         }
+    }
+
+    /// Configures optional Tailscale telemetry.
+    ///
+    /// A disabled or incomplete configuration is accepted: Tailscale is
+    /// reported as unavailable instead of preventing startup.
+    #[must_use]
+    pub fn with_tailscale(mut self, tailscale: TailscaleConfig) -> Self {
+        self.tailscale_cache = TailscaleCache::new(initial_section(&tailscale));
+        self.tailscale = tailscale;
+        self
+    }
+
+    /// Publishes a Tailscale snapshot as the latest available value.
+    pub fn publish_tailscale(&self, snapshot: TailscaleSnapshot) {
+        self.tailscale_cache
+            .publish(Section::Available { value: snapshot });
+    }
+
+    /// Creates a snapshot builder wired to this state's telemetry sources.
+    #[must_use]
+    pub fn snapshot_builder(&self) -> SnapshotBuilder {
+        SnapshotBuilder::new(self.paths.clone(), Arc::clone(&self.mount_stats))
+            .with_tailscale(self.tailscale_cache.subscribe())
     }
 
     /// Publishes a snapshot as the latest sample, replacing any previous one.
@@ -90,6 +119,14 @@ impl AppState {
 
     pub(crate) fn shutdown_receiver(&self) -> Shutdown {
         Shutdown::receiver(&self.shutdown)
+    }
+
+    pub(crate) fn tailscale_config(&self) -> &TailscaleConfig {
+        &self.tailscale
+    }
+
+    pub(crate) fn tailscale_cache(&self) -> &TailscaleCache {
+        &self.tailscale_cache
     }
 }
 
@@ -133,6 +170,7 @@ fn build_parts() -> (Router<AppState>, utoipa::openapi::OpenApi) {
         .routes(routes!(system_api::uptime))
         .routes(routes!(system_api::disks))
         .routes(routes!(system_api::network))
+        .routes(routes!(system_api::tailscale))
         .routes(routes!(system_api::stream));
 
     OpenApiRouter::with_openapi(ApiDoc::openapi())

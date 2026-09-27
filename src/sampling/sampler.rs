@@ -2,7 +2,6 @@ use std::sync::Arc;
 
 use tokio::task::JoinHandle;
 
-use super::builder::SnapshotBuilder;
 use crate::app::AppState;
 
 /// Spawns the background task that samples the system on a fixed interval.
@@ -10,7 +9,7 @@ use crate::app::AppState;
 /// The task publishes each snapshot into the shared watch channel and stops
 /// when the application requests shutdown. It never outlives the daemon.
 pub fn spawn_sampler(state: &AppState) -> JoinHandle<()> {
-    let mut builder = SnapshotBuilder::new(state.paths.clone(), Arc::clone(&state.mount_stats));
+    let mut builder = state.snapshot_builder();
     let snapshots = state.snapshot_sender();
     let interval = state.sampling.interval();
     let mut shutdown = state.shutdown_receiver();

@@ -6,6 +6,12 @@ use figment::Figment;
 use figment::providers::{Env, Format, Serialized, Toml};
 use serde::{Deserialize, Serialize};
 
+mod secret;
+mod tailscale;
+
+pub use secret::SecretString;
+pub use tailscale::{TailscaleConfig, TailscaleUnavailable};
+
 /// Name of the configuration file looked up in the working directory.
 pub(crate) const DEFAULT_CONFIG_FILE: &str = "aetherd.toml";
 
@@ -22,6 +28,8 @@ pub struct Config {
     pub paths: PathsConfig,
     /// Background sampling settings.
     pub sampling: SamplingConfig,
+    /// Optional Tailscale tailnet telemetry.
+    pub tailscale: TailscaleConfig,
 }
 
 /// HTTP server configuration.
@@ -126,6 +134,18 @@ pub enum ConfigError {
         /// Inclusive upper bound.
         max: u64,
     },
+    /// The Tailscale refresh interval is outside the accepted range.
+    #[error(
+        "tailscale.refresh_interval_seconds must be between {min} and {max} seconds, got {value}"
+    )]
+    InvalidTailscaleRefreshInterval {
+        /// The rejected value.
+        value: u64,
+        /// Inclusive lower bound.
+        min: u64,
+        /// Inclusive upper bound.
+        max: u64,
+    },
 }
 
 /// Loads configuration from defaults, an optional TOML file, and environment
@@ -155,6 +175,7 @@ pub fn load(explicit_path: Option<&Path>) -> Result<Config, ConfigError> {
         .map_err(|error| ConfigError::Invalid(Box::new(error)))
         .and_then(|config: Config| {
             config.sampling.validate()?;
+            config.tailscale.validate()?;
             Ok(config)
         })
 }
@@ -176,6 +197,54 @@ mod tests {
         assert_eq!(config.paths.sys, PathBuf::from("/sys"));
         assert_eq!(config.paths.host_root, PathBuf::from("/"));
         assert_eq!(config.sampling.interval_ms, 1000);
+        assert!(!config.tailscale.enabled);
+        assert_eq!(config.tailscale.refresh_interval_seconds, 60);
+    }
+
+    #[test]
+    fn tailscale_is_configurable_through_the_environment() {
+        Jail::expect_with(|jail| {
+            jail.set_env("AETHERD_TAILSCALE__ENABLED", "true");
+            jail.set_env("AETHERD_TAILSCALE__TAILNET", "example.ts.net");
+            jail.set_env("AETHERD_TAILSCALE__API_KEY", "tskey-secret");
+            jail.set_env("AETHERD_TAILSCALE__REFRESH_INTERVAL_SECONDS", "30");
+
+            let config = load(None).expect("tailscale environment loads");
+
+            assert!(config.tailscale.enabled);
+            assert_eq!(config.tailscale.tailnet, "example.ts.net");
+            assert_eq!(config.tailscale.refresh_interval_seconds, 30);
+            assert_eq!(config.tailscale.unavailable(), None);
+            assert!(!format!("{config:?}").contains("tskey-secret"));
+            Ok(())
+        });
+    }
+
+    #[test]
+    fn invalid_tailscale_refresh_interval_is_rejected() {
+        Jail::expect_with(|jail| {
+            jail.set_env("AETHERD_TAILSCALE__REFRESH_INTERVAL_SECONDS", "0");
+
+            let error = load(None).expect_err("zero refresh interval must fail");
+
+            assert!(matches!(
+                error,
+                ConfigError::InvalidTailscaleRefreshInterval { .. }
+            ));
+            Ok(())
+        });
+    }
+
+    #[test]
+    fn unknown_tailscale_keys_are_rejected() {
+        Jail::expect_with(|jail| {
+            jail.create_file("aetherd.toml", "[tailscale]\nunknown = true\n")?;
+
+            let error = load(None).expect_err("unknown tailscale keys must fail");
+
+            assert!(matches!(error, ConfigError::Invalid(_)));
+            Ok(())
+        });
     }
 
     #[test]

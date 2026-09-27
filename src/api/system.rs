@@ -16,6 +16,7 @@ use crate::system::load::LoadMetrics;
 use crate::system::memory::MemoryMetrics;
 use crate::system::network::NetworkMetrics;
 use crate::system::uptime::UptimeMetrics;
+use crate::tailscale::TailscaleSnapshot;
 
 const STREAM_EVENT_NAME: &str = "system";
 const KEEP_ALIVE_INTERVAL: Duration = Duration::from_secs(15);
@@ -142,6 +143,23 @@ pub(crate) async fn network(
     let guard = state.snapshot();
     let snapshot = guard.as_ref().ok_or(ApiError::NotReady)?;
     section_value(&snapshot.network).map(Json)
+}
+
+#[utoipa::path(
+    get,
+    path = "/tailscale",
+    tag = "system",
+    responses(
+        (status = 200, description = "Tailnet machines from the last successful Tailscale refresh", body = TailscaleSnapshot),
+        (status = 503, description = "Snapshot not ready or Tailscale telemetry unavailable", body = ErrorResponse)
+    )
+)]
+pub(crate) async fn tailscale(
+    State(state): State<AppState>,
+) -> Result<Json<TailscaleSnapshot>, ApiError> {
+    let guard = state.snapshot();
+    let snapshot = guard.as_ref().ok_or(ApiError::NotReady)?;
+    section_value(&snapshot.tailscale).map(Json)
 }
 
 fn section_value<T: Clone>(section: &Section<T>) -> Result<T, ApiError> {

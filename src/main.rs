@@ -61,6 +61,7 @@ async fn run(config_path: Option<PathBuf>) -> Result<(), StartupError> {
         http,
         paths,
         sampling,
+        tailscale,
     } = aetherd::load_config(config_path.as_deref())?;
 
     tracing::info!(
@@ -72,9 +73,12 @@ async fn run(config_path: Option<PathBuf>) -> Result<(), StartupError> {
         "configuration loaded"
     );
 
-    let state = aetherd::AppState::with_sampling(paths.into(), sampling);
+    log_tailscale_posture(&tailscale);
+
+    let state = aetherd::AppState::with_sampling(paths.into(), sampling).with_tailscale(tailscale);
     let app = aetherd::build_router(state.clone());
     let sampler = aetherd::spawn_sampler(&state);
+    let tailscale_refresher = aetherd::spawn_tailscale_refresher(&state);
 
     let listener = TcpListener::bind(http.bind)
         .await
@@ -97,11 +101,30 @@ async fn run(config_path: Option<PathBuf>) -> Result<(), StartupError> {
     if let Err(error) = sampler.await {
         tracing::warn!(error = %error, "sampler task failed");
     }
+    if let Some(refresher) = tailscale_refresher
+        && let Err(error) = refresher.await
+    {
+        tracing::warn!(error = %error, "tailscale refresher task failed");
+    }
 
     serve_result.map_err(StartupError::Serve)?;
 
     tracing::info!("aetherd stopped");
     Ok(())
+}
+
+fn log_tailscale_posture(tailscale: &aetherd::TailscaleConfig) {
+    match tailscale.unavailable() {
+        None => tracing::info!(
+            tailnet = %tailscale.tailnet,
+            refresh_interval_seconds = tailscale.refresh_interval_seconds,
+            "tailscale telemetry enabled"
+        ),
+        Some(aetherd::TailscaleUnavailable::Disabled) => {
+            tracing::debug!("tailscale telemetry disabled");
+        }
+        Some(reason) => tracing::warn!(reason = reason.reason(), "tailscale telemetry incomplete"),
+    }
 }
 
 async fn shutdown_signal() {

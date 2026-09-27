@@ -9,12 +9,13 @@ use crate::system::load::LoadMetrics;
 use crate::system::memory::MemoryMetrics;
 use crate::system::network::NetworkMetrics;
 use crate::system::uptime::UptimeMetrics;
+use crate::tailscale::TailscaleSnapshot;
 
 /// A metric that may or may not be available on the current host.
 ///
 /// Aggregated responses use this so a single failing collector never fails the
 /// whole payload.
-#[derive(Debug, Serialize, ToSchema)]
+#[derive(Clone, Debug, PartialEq, Serialize, ToSchema)]
 #[serde(tag = "status", rename_all = "snake_case")]
 pub(crate) enum Section<T> {
     /// The metric was collected.
@@ -53,4 +54,7 @@ pub struct SystemSnapshot {
     pub(crate) disks: Section<DisksMetrics>,
     /// Network metrics.
     pub(crate) network: Section<NetworkMetrics>,
+    /// Tailnet machines reported by the Tailscale API, refreshed on its own
+    /// schedule and independent of the system sampling interval.
+    pub(crate) tailscale: Section<TailscaleSnapshot>,
 }

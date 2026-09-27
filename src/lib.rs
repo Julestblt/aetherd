@@ -8,10 +8,13 @@ mod app;
 mod config;
 mod sampling;
 mod system;
+mod tailscale;
 
 pub use app::{AppState, build_router};
 pub use config::{
-    Config, ConfigError, HttpConfig, PathsConfig, SamplingConfig, load as load_config,
+    Config, ConfigError, HttpConfig, PathsConfig, SamplingConfig, SecretString, TailscaleConfig,
+    TailscaleUnavailable, load as load_config,
 };
 pub use sampling::{SnapshotBuilder, SystemSnapshot, spawn_sampler};
 pub use system::{DiskUsage, MountStats, SystemPaths};
+pub use tailscale::{TailscaleDevice, TailscaleSnapshot, spawn_tailscale_refresher};

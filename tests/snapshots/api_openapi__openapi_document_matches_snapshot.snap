@@ -1122,6 +1122,74 @@ expression: body
           }
         ]
       },
+      "Section_TailscaleSnapshot": {
+        "description": "A metric that may or may not be available on the current host.\n\nAggregated responses use this so a single failing collector never fails the\nwhole payload.",
+        "oneOf": [
+          {
+            "description": "The metric was collected.",
+            "properties": {
+              "status": {
+                "enum": [
+                  "available"
+                ],
+                "type": "string"
+              },
+              "value": {
+                "description": "Tailnet machines observed through the Tailscale HTTP API.",
+                "properties": {
+                  "collected_at": {
+                    "description": "RFC3339 UTC timestamp of the last successful refresh.",
+                    "format": "date-time",
+                    "type": "string"
+                  },
+                  "devices": {
+                    "description": "Machines currently known to the tailnet.",
+                    "items": {
+                      "$ref": "#/components/schemas/TailscaleDevice"
+                    },
+                    "type": "array"
+                  },
+                  "tailnet": {
+                    "description": "Tailnet the devices belong to.",
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "collected_at",
+                  "tailnet",
+                  "devices"
+                ],
+                "type": "object"
+              }
+            },
+            "required": [
+              "value",
+              "status"
+            ],
+            "type": "object"
+          },
+          {
+            "description": "The metric could not be collected on this host.",
+            "properties": {
+              "reason": {
+                "description": "Why the metric is unavailable.",
+                "type": "string"
+              },
+              "status": {
+                "enum": [
+                  "unavailable"
+                ],
+                "type": "string"
+              }
+            },
+            "required": [
+              "reason",
+              "status"
+            ],
+            "type": "object"
+          }
+        ]
+      },
       "Section_UptimeMetrics": {
         "description": "A metric that may or may not be available on the current host.\n\nAggregated responses use this so a single failing collector never fails the\nwhole payload.",
         "oneOf": [
@@ -1215,6 +1283,10 @@ expression: body
             "$ref": "#/components/schemas/Section_NetworkMetrics",
             "description": "Network metrics."
           },
+          "tailscale": {
+            "$ref": "#/components/schemas/Section_TailscaleSnapshot",
+            "description": "Tailnet machines reported by the Tailscale API, refreshed on its own\nschedule and independent of the system sampling interval."
+          },
           "uptime": {
             "$ref": "#/components/schemas/Section_UptimeMetrics",
             "description": "System uptime."
@@ -1228,7 +1300,97 @@ expression: body
           "load",
           "uptime",
           "disks",
-          "network"
+          "network",
+          "tailscale"
+        ],
+        "type": "object"
+      },
+      "TailscaleDevice": {
+        "description": "A single Tailscale machine.",
+        "properties": {
+          "addresses": {
+            "description": "Tailnet IP addresses.",
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "authorized": {
+            "description": "Whether the device is authorized to join the tailnet.",
+            "type": "boolean"
+          },
+          "dns_name": {
+            "description": "Fully qualified `MagicDNS` name.",
+            "type": "string"
+          },
+          "hostname": {
+            "description": "Short hostname.",
+            "type": "string"
+          },
+          "id": {
+            "description": "Stable device identifier.",
+            "type": "string"
+          },
+          "last_seen": {
+            "description": "RFC3339 UTC timestamp of the last handshake, when the API reported a\nparseable value.",
+            "format": "date-time",
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "online": {
+            "description": "Whether the device was seen in the last 120 seconds.\n\nThe Tailscale API exposes no online flag, so this is inferred from\n`last_seen`; an absent or unparseable timestamp is reported as offline.",
+            "type": "boolean"
+          },
+          "os": {
+            "description": "Operating system reported by the client.",
+            "type": "string"
+          },
+          "tags": {
+            "description": "ACL tags applied to the device.",
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          }
+        },
+        "required": [
+          "id",
+          "hostname",
+          "dns_name",
+          "os",
+          "addresses",
+          "online",
+          "authorized",
+          "tags"
+        ],
+        "type": "object"
+      },
+      "TailscaleSnapshot": {
+        "description": "Tailnet machines observed through the Tailscale HTTP API.",
+        "properties": {
+          "collected_at": {
+            "description": "RFC3339 UTC timestamp of the last successful refresh.",
+            "format": "date-time",
+            "type": "string"
+          },
+          "devices": {
+            "description": "Machines currently known to the tailnet.",
+            "items": {
+              "$ref": "#/components/schemas/TailscaleDevice"
+            },
+            "type": "array"
+          },
+          "tailnet": {
+            "description": "Tailnet the devices belong to.",
+            "type": "string"
+          }
+        },
+        "required": [
+          "collected_at",
+          "tailnet",
+          "devices"
         ],
         "type": "object"
       },
@@ -1500,6 +1662,36 @@ expression: body
         "responses": {
           "200": {
             "description": "Server-Sent Events stream. Each event is named `system` and its data is the latest SystemSnapshot serialized as JSON. The first event carries the current snapshot; later events arrive as new samples are published."
+          }
+        },
+        "tags": [
+          "system"
+        ]
+      }
+    },
+    "/v1/system/tailscale": {
+      "get": {
+        "operationId": "tailscale",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TailscaleSnapshot"
+                }
+              }
+            },
+            "description": "Tailnet machines from the last successful Tailscale refresh"
+          },
+          "503": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Snapshot not ready or Tailscale telemetry unavailable"
           }
         },
         "tags": [

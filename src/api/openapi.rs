@@ -10,6 +10,7 @@ use crate::system::load::LoadMetrics;
 use crate::system::memory::MemoryMetrics;
 use crate::system::network::{NetworkInterface, NetworkMetrics};
 use crate::system::uptime::UptimeMetrics;
+use crate::tailscale::{TailscaleDevice, TailscaleSnapshot};
 
 /// `OpenAPI` document generated from the Rust types and handler annotations.
 #[derive(OpenApi)]
@@ -32,6 +33,9 @@ use crate::system::uptime::UptimeMetrics;
         Section<UptimeMetrics>,
         Section<DisksMetrics>,
         Section<NetworkMetrics>,
+        Section<TailscaleSnapshot>,
+        TailscaleSnapshot,
+        TailscaleDevice,
         CpuMetrics,
         CpuTimes,
         CpuCore,

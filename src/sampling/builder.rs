@@ -1,9 +1,11 @@
 use std::sync::Arc;
 
 use time::OffsetDateTime;
+use tokio::sync::watch;
 
 use super::delta;
 use super::snapshot::{Section, SystemSnapshot};
+use crate::config::TailscaleUnavailable;
 use crate::system::cpu::{CpuCollector, CpuMetrics};
 use crate::system::disks::DiskCollector;
 use crate::system::host::HostCollector;
@@ -12,6 +14,7 @@ use crate::system::memory::MemoryCollector;
 use crate::system::network::{NetworkCollector, NetworkMetrics};
 use crate::system::uptime::UptimeCollector;
 use crate::system::{MountStats, SystemCollector, SystemPaths};
+use crate::tailscale::TailscaleSnapshot;
 
 /// Builds [`SystemSnapshot`]s from configured telemetry sources.
 ///
@@ -23,6 +26,7 @@ use crate::system::{MountStats, SystemCollector, SystemPaths};
 pub struct SnapshotBuilder {
     paths: SystemPaths,
     mount_stats: Arc<dyn MountStats>,
+    tailscale: Option<watch::Receiver<Section<TailscaleSnapshot>>>,
     cpu_baseline: Option<CpuMetrics>,
     network_baseline: Option<(OffsetDateTime, NetworkMetrics)>,
 }
@@ -35,9 +39,23 @@ impl SnapshotBuilder {
         Self {
             paths,
             mount_stats,
+            tailscale: None,
             cpu_baseline: None,
             network_baseline: None,
         }
+    }
+
+    /// Reads the Tailscale section from the given cache receiver.
+    ///
+    /// Without a receiver the section is reported as disabled, which keeps
+    /// Tailscale optional for callers that never configure it.
+    #[must_use]
+    pub(crate) fn with_tailscale(
+        mut self,
+        tailscale: watch::Receiver<Section<TailscaleSnapshot>>,
+    ) -> Self {
+        self.tailscale = Some(tailscale);
+        self
     }
 
     /// Collects one snapshot as of `collected_at`, deriving interval metrics
@@ -71,6 +89,16 @@ impl SnapshotBuilder {
             uptime: probe_section(&UptimeCollector, &self.paths),
             disks: probe_section(&disks, &self.paths),
             network,
+            tailscale: self.tailscale_section(),
+        }
+    }
+
+    fn tailscale_section(&self) -> Section<TailscaleSnapshot> {
+        match &self.tailscale {
+            Some(section) => section.borrow().clone(),
+            None => Section::Unavailable {
+                reason: TailscaleUnavailable::Disabled.reason().to_owned(),
+            },
         }
     }
 }
