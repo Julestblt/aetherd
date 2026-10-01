@@ -17,6 +17,7 @@ swagger-ui = ["dep:utoipa-swagger-ui"]
 [dependencies]
 async-stream = "0.3"
 axum = "0.8"
+csv = "1.3"
 figment = { version = "0.10", features = ["toml", "env"] }
 reqwest = { version = "0.12", default-features = false, features = ["rustls-tls", "json"] }
 rustix = { version = "1", features = ["fs"] }

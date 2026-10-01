@@ -30,6 +30,8 @@ pub(crate) use opencode::OpenCodeGoProvider;
 #[derive(Debug, thiserror::Error)]
 pub(crate) enum ProviderError {
     #[error("{0}")]
+    Configuration(&'static str),
+    #[error("{0}")]
     AuthFile(&'static str),
     #[error("provider request failed or timed out")]
     Request,

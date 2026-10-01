@@ -4,6 +4,7 @@ use std::time::Duration;
 use serde::{Deserialize, Serialize};
 
 use super::ConfigError;
+use super::SecretString;
 
 /// Configuration for optional AI usage integrations.
 #[derive(Clone, Debug, Default, Deserialize, Serialize, PartialEq, Eq)]
@@ -62,14 +63,15 @@ impl CodexConfig {
     }
 }
 
-/// `OpenCode` Go quota settings.
+/// `OpenCode` Go usage settings.
 #[derive(Clone, Debug, Deserialize, Serialize, PartialEq, Eq)]
 #[serde(default, deny_unknown_fields)]
 pub struct OpenCodeConfig {
-    /// Enables the `OpenCode` Go quota reader.
+    /// Enables the `OpenCode` Go usage reader.
     pub enabled: bool,
-    /// Explicit path to `OpenCode`'s structured auth.json file.
-    pub auth_file: Option<PathBuf>,
+    /// Service account API key for the Console usage API.
+    #[serde(skip_serializing)]
+    pub api_key: SecretString,
     /// Time between `OpenCode` Go quota refreshes, in seconds.
     pub refresh_interval_seconds: u64,
 }
@@ -78,7 +80,7 @@ impl Default for OpenCodeConfig {
     fn default() -> Self {
         Self {
             enabled: false,
-            auth_file: None,
+            api_key: SecretString::default(),
             refresh_interval_seconds: 60,
         }
     }
@@ -115,6 +117,7 @@ mod tests {
             );
             jail.set_env("AETHERD_PROVIDERS__CODEX__REFRESH_INTERVAL_SECONDS", "30");
             jail.set_env("AETHERD_PROVIDERS__OPENCODE__ENABLED", "true");
+            jail.set_env("AETHERD_PROVIDERS__OPENCODE__API_KEY", "oc_sk_test-secret");
             let config = load(None).expect("provider config");
             assert!(config.providers.codex.enabled);
             assert_eq!(
@@ -126,6 +129,21 @@ mod tests {
                 Duration::from_secs(30)
             );
             assert!(config.providers.opencode.enabled);
+            assert_eq!(
+                config.providers.opencode.api_key.expose(),
+                "oc_sk_test-secret"
+            );
+            assert!(!format!("{config:?}").contains("oc_sk_test-secret"));
+            assert!(
+                !serde_json::to_string(&config)
+                    .expect("json")
+                    .contains("oc_sk_test-secret")
+            );
+            assert!(
+                serde_json::to_value(&config).expect("json")["providers"]["opencode"]
+                    .get("api_key")
+                    .is_none()
+            );
             assert_eq!(
                 config.providers.opencode.refresh_interval(),
                 Duration::from_secs(60)
@@ -145,6 +163,15 @@ mod tests {
                     value: 0
                 })
             ));
+            Ok(())
+        });
+    }
+
+    #[test]
+    fn removed_opencode_auth_file_is_rejected() {
+        Jail::expect_with(|jail| {
+            jail.set_env("AETHERD_PROVIDERS__OPENCODE__AUTH_FILE", "/tmp/auth.json");
+            assert!(load(None).is_err());
             Ok(())
         });
     }

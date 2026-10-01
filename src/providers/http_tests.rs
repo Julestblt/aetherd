@@ -9,7 +9,7 @@ use super::{CodexProvider, OpenCodeGoProvider, ProviderError, UsageProvider};
 use crate::config::SecretString;
 
 const CODEX_BODY: &str = r#"{"rate_limit":{"primary_window":{"used_percent":32,"limit_window_seconds":18000,"reset_at":1700000000},"secondary_window":{"used_percent":71,"limit_window_seconds":604800,"reset_at":1700100000}}}"#;
-const GO_BODY: &str = r#"{"usage":{"rolling":{"status":"ok","percent":5,"resetsAt":"2026-09-19T19:10:07.880Z"},"weekly":{"status":"ok","percent":46,"resetsAt":"2026-09-21T00:00:00.880Z"},"monthly":{"status":"ok","percent":41,"resetsAt":"2026-10-08T05:27:23.880Z"}}}"#;
+const GO_BODY: &str = "id,created_at,provider,model,input_tokens,output_tokens,cache_read_tokens,cost_micro_cents,service\n1,2026-09-30T12:00:00Z,anthropic,claude-sonnet,100,20,50,25000000,\n2,2026-09-30T13:00:00Z,opencode,glm-5,200,30,70,5000000,\n3,2026-09-30T14:00:00Z,,,,,,1000000,web-search\n";
 
 #[derive(Clone, Copy, Debug)]
 enum Reply {
@@ -59,16 +59,13 @@ fn codex_provider(reply: Reply) -> (tempfile::TempDir, CodexProvider) {
     (directory, CodexProvider::with_http(path, http))
 }
 
-fn go_provider(reply: Reply) -> (tempfile::TempDir, OpenCodeGoProvider) {
-    let directory = tempfile::tempdir().expect("tempdir");
-    let path = directory.path().join("auth.json");
-    std::fs::write(&path, r#"{"opencode":{"type":"api","key":"zen-secret"},"opencode-go":{"type":"api","key":"go-secret"}}"#).expect("auth fixture");
+fn go_provider(reply: Reply) -> OpenCodeGoProvider {
     let http = Arc::new(FakeHttp {
-        expected_token: SecretString::new("go-secret"),
+        expected_token: SecretString::new("oc_sk_test-secret"),
         expected_account: None,
         reply,
     });
-    (directory, OpenCodeGoProvider::with_http(path, http))
+    OpenCodeGoProvider::with_http(SecretString::new("oc_sk_test-secret"), http)
 }
 
 #[tokio::test]
@@ -107,21 +104,28 @@ async fn codex_auth_failure_timeout_and_malformed_json_are_isolated() {
 
 #[tokio::test]
 async fn opencode_go_collects_and_isolates_failures() {
-    let (_directory, provider) = go_provider(Reply::Body(GO_BODY));
+    let provider = go_provider(Reply::Body(GO_BODY));
     let usage = provider.collect().await.expect("usage");
-    assert_eq!(usage.windows.len(), 3);
+    assert_eq!(usage.windows.len(), 1);
     assert_eq!(usage.provider_id, "opencode-go");
+    assert_eq!(usage.windows[0].used_percent, None);
+    assert_eq!(usage.windows[0].requests, Some(2));
+    assert_eq!(usage.windows[0].cost_usd, Some(0.3));
+    assert_eq!(usage.models.as_ref().expect("models").len(), 2);
+    assert!(!format!("{provider:?}").contains("oc_sk_test-secret"));
     assert!(
         !serde_json::to_string(&usage)
             .expect("json")
-            .contains("go-secret")
+            .contains("oc_sk_test-secret")
     );
     for reply in [
+        Reply::Status(StatusCode::UNAUTHORIZED),
         Reply::Status(StatusCode::FORBIDDEN),
         Reply::Timeout,
-        Reply::Body("not json"),
+        Reply::Body("not csv"),
     ] {
-        let (_directory, provider) = go_provider(reply);
-        assert!(provider.collect().await.is_err());
+        let provider = go_provider(reply);
+        let error = provider.collect().await.expect_err("upstream failure");
+        assert!(!format!("{error:?}").contains("oc_sk_test-secret"));
     }
 }

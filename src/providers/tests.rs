@@ -79,13 +79,12 @@ async fn configured_providers_are_disabled_by_default() {
 }
 
 #[test]
-fn missing_explicit_auth_files_leave_providers_unavailable() {
+fn missing_codex_auth_and_opencode_key_leave_providers_unavailable() {
     let directory = tempfile::tempdir().expect("tempdir");
     let mut config = ProvidersConfig::default();
     config.codex.enabled = true;
     config.codex.auth_file = Some(directory.path().join("missing-codex.json"));
     config.opencode.enabled = true;
-    config.opencode.auth_file = Some(directory.path().join("missing-opencode.json"));
     let state = AppState::new(SystemPaths::default()).with_providers(config);
     assert!(spawn_provider_refreshers(&state).is_empty());
     let statuses = state.provider_cache().statuses();
@@ -101,7 +100,7 @@ fn missing_explicit_auth_files_leave_providers_unavailable() {
         statuses[1]
             .error
             .as_deref()
-            .is_some_and(|error| error.contains("no auth file"))
+            .is_some_and(|error| error.contains("API key is not configured"))
     );
 }
 
@@ -111,6 +110,7 @@ async fn provider_failures_are_isolated_in_both_directions() {
         let mut config = ProvidersConfig::default();
         config.codex.enabled = true;
         config.opencode.enabled = true;
+        config.opencode.api_key = crate::config::SecretString::new("oc_sk_test-secret");
         let state = AppState::new(SystemPaths::default()).with_providers(config);
         let at = time::OffsetDateTime::from_unix_timestamp(1_700_000_000).expect("time");
         for (id, succeeds) in [("codex", codex_ok), ("opencode-go", go_ok)] {
@@ -121,6 +121,7 @@ async fn provider_failures_are_isolated_in_both_directions() {
         let router = build_router(state.clone());
         let (status, providers) = get_json(router.clone(), "/v1/providers").await;
         assert_eq!(status, StatusCode::OK);
+        assert!(!providers.to_string().contains("oc_sk_test-secret"));
         assert_eq!(
             providers[0]["status"],
             if codex_ok { "available" } else { "unavailable" }
@@ -131,6 +132,7 @@ async fn provider_failures_are_isolated_in_both_directions() {
         );
         let (status, usage) = get_json(router, "/v1/usage").await;
         assert_eq!(status, StatusCode::OK);
+        assert!(!usage.to_string().contains("oc_sk_test-secret"));
         let entries = usage["providers"].as_array().expect("providers");
         assert_eq!(entries.len(), 1);
         assert_eq!(

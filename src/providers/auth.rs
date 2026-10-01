@@ -17,19 +17,6 @@ pub(crate) struct CodexTokens {
     pub(crate) account_id: Option<String>,
 }
 
-#[derive(Debug, Deserialize)]
-pub(crate) struct OpenCodeAuth {
-    #[serde(rename = "opencode-go")]
-    pub(crate) go: Option<OpenCodeGoAuth>,
-}
-
-#[derive(Debug, Deserialize)]
-pub(crate) struct OpenCodeGoAuth {
-    #[serde(rename = "type")]
-    pub(crate) kind: String,
-    pub(crate) key: SecretString,
-}
-
 pub(crate) fn resolve_codex_auth(
     explicit: Option<&Path>,
     codex_home: Option<&Path>,
@@ -42,21 +29,6 @@ pub(crate) fn resolve_codex_auth(
             home.map(|path| path.join(".codex/auth.json")),
         ],
         "Codex provider enabled but no auth file could be resolved",
-    )
-}
-
-pub(crate) fn resolve_opencode_auth(
-    explicit: Option<&Path>,
-    xdg_data_home: Option<&Path>,
-    home: Option<&Path>,
-) -> Result<PathBuf, ProviderError> {
-    resolve(
-        explicit,
-        [
-            xdg_data_home.map(|path| path.join("opencode/auth.json")),
-            home.map(|path| path.join(".local/share/opencode/auth.json")),
-        ],
-        "OpenCode Go provider enabled but no auth file could be resolved",
     )
 }
 
@@ -84,16 +56,6 @@ pub(crate) fn read_codex_auth(path: &Path) -> Result<CodexTokens, ProviderError>
         .filter(|tokens| !tokens.access_token.is_empty())
         .ok_or(ProviderError::AuthFile(
             "Codex auth file has no OAuth access token",
-        ))
-}
-
-pub(crate) fn read_opencode_auth(path: &Path) -> Result<SecretString, ProviderError> {
-    let auth: OpenCodeAuth = read_auth(path)?;
-    auth.go
-        .filter(|entry| entry.kind == "api" && !entry.key.is_empty())
-        .map(|entry| entry.key)
-        .ok_or(ProviderError::AuthFile(
-            "OpenCode auth file has no OpenCode Go API key",
         ))
 }
 
@@ -159,18 +121,5 @@ mod tests {
         );
         std::fs::write(&path, "not json").expect("bad fixture");
         assert!(read_codex_auth(&path).is_err());
-    }
-
-    #[test]
-    fn opencode_go_key_is_read_from_the_exact_auth_entry() {
-        let directory = tempfile::tempdir().expect("tempdir");
-        let path = directory.path().join("auth.json");
-        std::fs::write(&path, r#"{"opencode":{"type":"api","key":"zen-secret"},"opencode-go":{"type":"api","key":"go-secret"}}"#).expect("auth fixture");
-        let key = read_opencode_auth(&path).expect("go key");
-        assert_eq!(key.expose(), "go-secret");
-        assert!(!format!("{key:?}").contains("go-secret"));
-        std::fs::write(&path, r#"{"opencode":{"type":"api","key":"zen-secret"}}"#)
-            .expect("zen only");
-        assert!(read_opencode_auth(&path).is_err());
     }
 }

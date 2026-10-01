@@ -130,13 +130,17 @@ last successful timestamp for freshness decisions.
 `GET /v1/providers` reads status; `GET /v1/usage` reads only successful cached
 values. The provider model contains optional quota windows and accounting
 fields, so absent token, request, model, and cost data are not invented.
-Credential file paths come from configuration or narrow standard fallbacks;
-the selected file is read on each refresh. Parsed credentials use redacting
-`SecretString`. Neither raw auth data nor upstream response bodies are exposed.
+Codex credential file paths come from configuration or narrow standard
+fallbacks; the selected file is read on each refresh. OpenCode instead uses a
+Console service-account API key in redacting `SecretString`. Neither raw auth
+data nor upstream response bodies are exposed.
 
 Codex reads the internal, non-public ChatGPT `wham/usage` JSON endpoint. Its
-availability is subject to upstream changes. OpenCode Go reads a
-key-authenticated `zen/go/v1/usage` route implemented in the official OpenCode
-source; no public stability guarantee has been identified for this route. This
-is a Go account quota, not usage of arbitrary providers behind the OpenCode
-runtime.
+availability is subject to upstream changes. The `opencode-go` slot reads the
+official Console `GET /api/v1/usage/export` CSV API using a service-account
+bearer key, `scope=organization`, and `range=7d`. This export is workspace-wide
+accounting across model providers, not a Go quota. Go-only usage cannot be
+isolated from documented CSV fields, so the public account and window labels
+make that scope explicit and quota percentages and resets remain absent.
+The CSV reader caps a refresh at 16 MiB; an oversized export marks only this
+provider unavailable while retaining any previous successful value.

@@ -36,7 +36,7 @@ health is unversioned.
 | GET | `/v1/system/tailscale` | Tailnet machines from the last Tailscale refresh. |
 | GET | `/v1/system/stream` | Server-Sent Events stream of the latest snapshot. |
 | GET | `/v1/providers` | Codex and OpenCode Go configuration and refresh status. |
-| GET | `/v1/usage` | Last successful normalized quota data from enabled providers. |
+| GET | `/v1/usage` | Last successful normalized quota or accounting data from enabled providers. |
 
 ## AI usage
 
@@ -56,18 +56,23 @@ none has succeeded. Both endpoints return `200` when one provider fails.
 Each provider result has `provider_id`, `display_name`, optional
 `account_label`, and `windows`. A window has `kind`, `label`, and optional
 `duration_seconds`, `used_percent`, `remaining_percent`, `resets_at`, `tokens`,
-`requests`, and `cost_usd`. Optional `totals` and `models` allow future model
-accounting, but neither upstream quota source currently supplies those counts.
+`requests`, and `cost_usd`. Optional `totals` and `models` carry accounting
+counts when available.
 Percentages are in `0..=100` and timestamps are RFC3339 UTC. Unsupported
 values are omitted, never estimated.
 
 Codex currently exposes a primary and secondary quota window with used
 percentage, duration, and reset time. The 5-hour and 7-day durations are
-identified as `session` and `weekly`; other durations are `custom`. OpenCode Go
-exposes rolling 5-hour, weekly, and monthly percentages and reset times. Its
-weekly and monthly duration is omitted because the source gives only the reset
-time. The generic OpenCode runtime can use other model providers; its local
-session counters are not an OpenCode Go account quota.
+identified as `session` and `weekly`; other durations are `custom`. The
+`opencode-go` entry uses the official Console CSV export with `scope=organization`
+and `range=7d`. Its `account_label` and window label explicitly say the values
+cover the whole workspace and all model providers, not only OpenCode Go. The
+window is `custom` because the export starts at midnight UTC and is not a
+rolling seven-day quota. It exposes inference request counts, reported token
+breakdown and Console cost in USD, including per-model accounting labeled
+`provider/model`; web-search service rows are excluded. The export does not
+identify Go-only activity or give Go quota percentages or resets, so those
+fields are omitted. No quota limit is inferred from workspace accounting.
 
 Provider collection refreshes independently of system sampling and Tailscale.
 There is no usage SSE endpoint; consumers can poll these REST routes around

@@ -35,8 +35,8 @@ fails loudly instead of being ignored.
 | `providers.codex.enabled` | `AETHERD_PROVIDERS__CODEX__ENABLED` | `false` | Enable Codex account quota. |
 | `providers.codex.auth_file` | `AETHERD_PROVIDERS__CODEX__AUTH_FILE` | unset | Explicit Codex auth file path. |
 | `providers.codex.refresh_interval_seconds` | `AETHERD_PROVIDERS__CODEX__REFRESH_INTERVAL_SECONDS` | `60` | Codex refresh interval in seconds (`1..=86400`). |
-| `providers.opencode.enabled` | `AETHERD_PROVIDERS__OPENCODE__ENABLED` | `false` | Enable OpenCode Go account quota. |
-| `providers.opencode.auth_file` | `AETHERD_PROVIDERS__OPENCODE__AUTH_FILE` | unset | Explicit OpenCode auth file path. |
+| `providers.opencode.enabled` | `AETHERD_PROVIDERS__OPENCODE__ENABLED` | `false` | Enable OpenCode usage export. |
+| `providers.opencode.api_key` | `AETHERD_PROVIDERS__OPENCODE__API_KEY` | `""` | Dedicated Console service-account API key. Never serialized or logged. |
 | `providers.opencode.refresh_interval_seconds` | `AETHERD_PROVIDERS__OPENCODE__REFRESH_INTERVAL_SECONDS` | `60` | OpenCode Go refresh interval in seconds (`1..=86400`). |
 
 ## AI usage providers
@@ -75,14 +75,24 @@ The non-root container user must be able to read the mounted file. The Codex
 usage URL is an internal ChatGPT endpoint, not a stable public API; upstream
 authentication and response fields can change without notice.
 
-OpenCode Go uses the `opencode-go` API key entry in OpenCode's structured
-`auth.json`. It resolves an explicit `providers.opencode.auth_file`, then
-`$XDG_DATA_HOME/opencode/auth.json`, then
-`$HOME/.local/share/opencode/auth.json`. The ordinary `opencode` Zen key is not
-accepted for Go quota. For a container, mount the OpenCode auth file read-only
-and set `AETHERD_PROVIDERS__OPENCODE__AUTH_FILE` to its container path.
-The Go usage route exists in OpenCode's official source, but its stability is
-not guaranteed by a published API contract.
+OpenCode uses a dedicated Console service-account API key. Its usage export
+does not use browser sessions, the OpenCode CLI, or `auth.json`. No OpenCode
+bind mount is needed in Docker. Codex still needs its read-only auth-file mount.
+The official export reports workspace-wide accounting for all providers, not
+Go-only quota. Use a service-account key with permission to read usage.
+
+```text
+AETHERD_PROVIDERS__OPENCODE__ENABLED=true
+AETHERD_PROVIDERS__OPENCODE__API_KEY=oc_sk_...
+AETHERD_PROVIDERS__OPENCODE__REFRESH_INTERVAL_SECONDS=60
+```
+
+For the intended Dokploy deployment, mount only
+`/home/albert/.codex/auth.json` to `/run/secrets/codex-auth.json` read-only.
+Set Codex `ENABLED=true`, `AUTH_FILE=/run/secrets/codex-auth.json`, and
+`REFRESH_INTERVAL_SECONDS=30`; set the OpenCode variables above. Remove any
+OpenCode `auth.json` mount and the old `AETHERD_PROVIDERS__OPENCODE__AUTH_FILE`
+variable. Use the environment rather than a tracked TOML file for the real key.
 
 ```toml
 [providers.codex]
@@ -91,6 +101,7 @@ refresh_interval_seconds = 60
 
 [providers.opencode]
 enabled = false
+api_key = ""
 refresh_interval_seconds = 60
 ```
 

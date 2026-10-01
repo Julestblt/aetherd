@@ -84,11 +84,13 @@ Status legend: `[x]` done and tested, `[ ]` not started, `[~]` partially done.
 - [x] OpenAI / Codex provider
 - [ ] Anthropic / Claude provider
 - [ ] OpenRouter provider
-- [x] OpenCode Go quota provider (generic OpenCode runtime usage remains outside this surface)
-- [x] Provider auth files configured by path, with redacted tokens in memory
+- [x] OpenCode Console workspace usage export behind the existing `opencode-go` slot, clearly labeled as workspace-wide accounting
+- [ ] Obtain a documented Go-only quota source or Go discriminator before exposing Go percentages and resets
+- [x] Codex auth file by path and OpenCode service-account key, with redacted secrets in memory
 - [~] Provider-level timeouts and caching; scheduled retry only, no exponential backoff
 - [ ] Add a documented generic OpenCode runtime usage source if one becomes available
-- [ ] Add token, request, cost, and model detail when upstream quota sources expose them
+- [x] Add token, request, cost, and model detail from the OpenCode Console usage export
+- [ ] Add corresponding details for Codex if its quota source exposes them
 - [ ] Review Codex additional rate-limit windows before adding model-specific quota data
 
 ## 6. Docker
