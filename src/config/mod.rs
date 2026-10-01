@@ -6,9 +6,14 @@ use figment::Figment;
 use figment::providers::{Env, Format, Serialized, Toml};
 use serde::{Deserialize, Serialize};
 
+mod providers;
 mod secret;
 mod tailscale;
 
+#[cfg(test)]
+mod tests;
+
+pub use providers::{CodexConfig, OpenCodeConfig, ProvidersConfig};
 pub use secret::SecretString;
 pub use tailscale::{TailscaleConfig, TailscaleUnavailable};
 
@@ -30,6 +35,8 @@ pub struct Config {
     pub sampling: SamplingConfig,
     /// Optional Tailscale tailnet telemetry.
     pub tailscale: TailscaleConfig,
+    /// Optional AI usage providers.
+    pub providers: ProvidersConfig,
 }
 
 /// HTTP server configuration.
@@ -146,6 +153,16 @@ pub enum ConfigError {
         /// Inclusive upper bound.
         max: u64,
     },
+    /// A provider refresh interval is outside the supported range.
+    #[error(
+        "providers.{provider}.refresh_interval_seconds must be between 1 and 86400 seconds, got {value}"
+    )]
+    InvalidProviderRefreshInterval {
+        /// Configured provider.
+        provider: &'static str,
+        /// Rejected number of seconds.
+        value: u64,
+    },
 }
 
 /// Loads configuration from defaults, an optional TOML file, and environment
@@ -176,172 +193,7 @@ pub fn load(explicit_path: Option<&Path>) -> Result<Config, ConfigError> {
         .and_then(|config: Config| {
             config.sampling.validate()?;
             config.tailscale.validate()?;
+            config.providers.validate()?;
             Ok(config)
         })
-}
-
-#[cfg(test)]
-#[allow(
-    clippy::result_large_err,
-    reason = "figment::Jail fixes the large error type of its test closures"
-)]
-mod tests {
-    use super::*;
-    use figment::Jail;
-
-    #[test]
-    fn defaults_are_stable() {
-        let config = Config::default();
-        assert_eq!(config.http.bind, SocketAddr::from(([127, 0, 0, 1], 8080)));
-        assert_eq!(config.paths.proc, PathBuf::from("/proc"));
-        assert_eq!(config.paths.sys, PathBuf::from("/sys"));
-        assert_eq!(config.paths.host_root, PathBuf::from("/"));
-        assert_eq!(config.sampling.interval_ms, 1000);
-        assert!(!config.tailscale.enabled);
-        assert_eq!(config.tailscale.refresh_interval_seconds, 60);
-    }
-
-    #[test]
-    fn tailscale_is_configurable_through_the_environment() {
-        Jail::expect_with(|jail| {
-            jail.set_env("AETHERD_TAILSCALE__ENABLED", "true");
-            jail.set_env("AETHERD_TAILSCALE__TAILNET", "example.ts.net");
-            jail.set_env("AETHERD_TAILSCALE__API_KEY", "tskey-secret");
-            jail.set_env("AETHERD_TAILSCALE__REFRESH_INTERVAL_SECONDS", "30");
-
-            let config = load(None).expect("tailscale environment loads");
-
-            assert!(config.tailscale.enabled);
-            assert_eq!(config.tailscale.tailnet, "example.ts.net");
-            assert_eq!(config.tailscale.refresh_interval_seconds, 30);
-            assert_eq!(config.tailscale.unavailable(), None);
-            assert!(!format!("{config:?}").contains("tskey-secret"));
-            Ok(())
-        });
-    }
-
-    #[test]
-    fn invalid_tailscale_refresh_interval_is_rejected() {
-        Jail::expect_with(|jail| {
-            jail.set_env("AETHERD_TAILSCALE__REFRESH_INTERVAL_SECONDS", "0");
-
-            let error = load(None).expect_err("zero refresh interval must fail");
-
-            assert!(matches!(
-                error,
-                ConfigError::InvalidTailscaleRefreshInterval { .. }
-            ));
-            Ok(())
-        });
-    }
-
-    #[test]
-    fn unknown_tailscale_keys_are_rejected() {
-        Jail::expect_with(|jail| {
-            jail.create_file("aetherd.toml", "[tailscale]\nunknown = true\n")?;
-
-            let error = load(None).expect_err("unknown tailscale keys must fail");
-
-            assert!(matches!(error, ConfigError::Invalid(_)));
-            Ok(())
-        });
-    }
-
-    #[test]
-    fn sampling_interval_converts_to_duration() {
-        let sampling = SamplingConfig { interval_ms: 2500 };
-        assert_eq!(sampling.interval(), Duration::from_millis(2500));
-    }
-
-    #[test]
-    fn sampling_interval_accepts_range_boundaries() {
-        let min = SamplingConfig {
-            interval_ms: SamplingConfig::MIN_INTERVAL_MS,
-        };
-        let max = SamplingConfig {
-            interval_ms: SamplingConfig::MAX_INTERVAL_MS,
-        };
-        assert!(min.validate().is_ok());
-        assert!(max.validate().is_ok());
-    }
-
-    #[test]
-    fn sampling_interval_rejects_invalid_values() {
-        let below = SamplingConfig {
-            interval_ms: SamplingConfig::MIN_INTERVAL_MS - 1,
-        };
-        let above = SamplingConfig {
-            interval_ms: SamplingConfig::MAX_INTERVAL_MS + 1,
-        };
-        let zero = SamplingConfig { interval_ms: 0 };
-
-        for sampling in [below, above, zero] {
-            let error = sampling.validate().expect_err("interval must be rejected");
-            assert!(matches!(error, ConfigError::InvalidSamplingInterval { .. }));
-        }
-    }
-
-    #[test]
-    fn missing_default_file_is_optional() {
-        Jail::expect_with(|_jail| {
-            let config = load(None).expect("defaults load without a file");
-            assert_eq!(config.paths.proc, PathBuf::from("/proc"));
-            Ok(())
-        });
-    }
-
-    #[test]
-    fn explicit_missing_file_is_rejected() {
-        let error = load(Some(Path::new("/nonexistent/aetherd.toml")))
-            .expect_err("explicit missing file must fail");
-        assert!(matches!(error, ConfigError::NotFound { .. }));
-    }
-
-    #[test]
-    fn toml_file_overrides_defaults() {
-        Jail::expect_with(|jail| {
-            jail.create_file("custom.toml", "[paths]\nproc = \"/host/proc\"\n")?;
-            let config = load(Some(Path::new("custom.toml"))).expect("file loads");
-            assert_eq!(config.paths.proc, PathBuf::from("/host/proc"));
-            assert_eq!(config.paths.sys, PathBuf::from("/sys"));
-            Ok(())
-        });
-    }
-
-    #[test]
-    fn env_overrides_defaults_and_file() {
-        Jail::expect_with(|jail| {
-            jail.create_file("aetherd.toml", "[http]\nbind = \"127.0.0.1:7000\"\n")?;
-            jail.set_env("AETHERD_HTTP__BIND", "0.0.0.0:9000");
-            jail.set_env("AETHERD_PATHS__HOST_ROOT", "/host/root");
-            let config = load(None).expect("env layer loads");
-            assert_eq!(config.http.bind, SocketAddr::from(([0, 0, 0, 0], 9000)));
-            assert_eq!(config.paths.host_root, PathBuf::from("/host/root"));
-            Ok(())
-        });
-    }
-
-    #[test]
-    fn sampling_interval_is_configurable_and_validated() {
-        Jail::expect_with(|jail| {
-            jail.set_env("AETHERD_SAMPLING__INTERVAL_MS", "250");
-            let config = load(None).expect("valid interval loads");
-            assert_eq!(config.sampling.interval_ms, 250);
-
-            jail.set_env("AETHERD_SAMPLING__INTERVAL_MS", "5");
-            let error = load(None).expect_err("too small interval must fail");
-            assert!(matches!(error, ConfigError::InvalidSamplingInterval { .. }));
-            Ok(())
-        });
-    }
-
-    #[test]
-    fn unknown_keys_are_rejected() {
-        Jail::expect_with(|jail| {
-            jail.create_file("aetherd.toml", "[paths]\nunknown = \"/tmp\"\n")?;
-            let error = load(None).expect_err("unknown keys must fail");
-            assert!(matches!(error, ConfigError::Invalid(_)));
-            Ok(())
-        });
-    }
 }

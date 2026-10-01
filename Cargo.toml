@@ -1,6 +1,6 @@
 [package]
 name = "aetherd"
-version = "0.3.0"
+version = "0.4.0"
 edition = "2024"
 rust-version = "1.88"
 description = "A lightweight daemon exposing a unified metrics API for Linux system telemetry and AI provider usage."
@@ -40,6 +40,7 @@ insta = { version = "1", features = ["json"] }
 time = "0.3"
 tokio = { version = "1", features = ["test-util"] }
 tower = { version = "0.5", features = ["util"] }
+tempfile = "3"
 
 [lints.rust]
 unsafe_op_in_unsafe_fn = "deny"

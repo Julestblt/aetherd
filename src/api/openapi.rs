@@ -2,6 +2,10 @@ use utoipa::OpenApi;
 
 use crate::api::error::{ErrorCode, ErrorDetail, ErrorResponse};
 use crate::api::health::{HealthResponse, HealthStatus};
+use crate::providers::{
+    ModelUsage, ProviderState, ProviderStatus, ProviderUsage, UsageSnapshot, UsageWindow,
+    WindowKind,
+};
 use crate::sampling::{Section, SystemSnapshot};
 use crate::system::cpu::{CpuCore, CpuMetrics, CpuTimes};
 use crate::system::disks::{DiskUsage, DisksMetrics, FilesystemMetrics};
@@ -18,13 +22,20 @@ use crate::tailscale::{TailscaleDevice, TailscaleSnapshot};
     info(
         title = "aetherd API",
         version = env!("CARGO_PKG_VERSION"),
-        description = "Linux system telemetry and, later, normalized AI provider usage.",
+        description = "Linux system telemetry and normalized AI provider usage.",
         license(name = "MIT OR Apache-2.0")
     ),
-    paths(crate::api::health::health),
+    paths(crate::api::health::health, crate::api::providers::providers, crate::api::providers::usage),
     components(schemas(
         HealthResponse,
         HealthStatus,
+        ProviderStatus,
+        ProviderState,
+        UsageSnapshot,
+        ProviderUsage,
+        UsageWindow,
+        WindowKind,
+        ModelUsage,
         SystemSnapshot,
         Section<HostMetrics>,
         Section<CpuMetrics>,

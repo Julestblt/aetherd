@@ -35,6 +35,43 @@ health is unversioned.
 | GET | `/v1/system/network` | Per-interface RX/TX counters and interval rates. |
 | GET | `/v1/system/tailscale` | Tailnet machines from the last Tailscale refresh. |
 | GET | `/v1/system/stream` | Server-Sent Events stream of the latest snapshot. |
+| GET | `/v1/providers` | Codex and OpenCode Go configuration and refresh status. |
+| GET | `/v1/usage` | Last successful normalized quota data from enabled providers. |
+
+## AI usage
+
+`GET /v1/providers` always reports the Codex and OpenCode Go slots. Each has
+`id`, `display_name`, `enabled`, `status` (`disabled`, `unavailable`, or
+`available`), `last_updated_at`, and an optional secret-free `error`.
+`last_updated_at` is the last successful refresh, including when a later
+refresh has failed.
+
+`GET /v1/usage` returns `collected_at` and a `providers` array. Only providers
+with a successful cached value appear in that array. A later failure keeps the
+last successful value, while `/v1/providers` marks that provider unavailable.
+Clients should use the status and timestamp together to identify stale values.
+`collected_at` is the newest successful provider refresh time, or `null` when
+none has succeeded. Both endpoints return `200` when one provider fails.
+
+Each provider result has `provider_id`, `display_name`, optional
+`account_label`, and `windows`. A window has `kind`, `label`, and optional
+`duration_seconds`, `used_percent`, `remaining_percent`, `resets_at`, `tokens`,
+`requests`, and `cost_usd`. Optional `totals` and `models` allow future model
+accounting, but neither upstream quota source currently supplies those counts.
+Percentages are in `0..=100` and timestamps are RFC3339 UTC. Unsupported
+values are omitted, never estimated.
+
+Codex currently exposes a primary and secondary quota window with used
+percentage, duration, and reset time. The 5-hour and 7-day durations are
+identified as `session` and `weekly`; other durations are `custom`. OpenCode Go
+exposes rolling 5-hour, weekly, and monthly percentages and reset times. Its
+weekly and monthly duration is omitted because the source gives only the reset
+time. The generic OpenCode runtime can use other model providers; its local
+session counters are not an OpenCode Go account quota.
+
+Provider collection refreshes independently of system sampling and Tailscale.
+There is no usage SSE endpoint; consumers can poll these REST routes around
+once per minute. Provider values never enter `/v1/system` or its stream.
 
 Per-metric endpoints return `200` with the latest sampled section, or `503`
 with a structured error when the snapshot is not ready yet or that metric is

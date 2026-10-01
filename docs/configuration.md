@@ -32,6 +32,67 @@ fails loudly instead of being ignored.
 | `tailscale.tailnet` | `AETHERD_TAILSCALE__TAILNET` | `""` | Tailnet to query, for example `example.ts.net`. |
 | `tailscale.api_key` | `AETHERD_TAILSCALE__API_KEY` | `""` | Tailscale API key. Never serialized or logged. |
 | `tailscale.refresh_interval_seconds` | `AETHERD_TAILSCALE__REFRESH_INTERVAL_SECONDS` | `60` | Tailscale refresh interval, in seconds (`1..=86400`). |
+| `providers.codex.enabled` | `AETHERD_PROVIDERS__CODEX__ENABLED` | `false` | Enable Codex account quota. |
+| `providers.codex.auth_file` | `AETHERD_PROVIDERS__CODEX__AUTH_FILE` | unset | Explicit Codex auth file path. |
+| `providers.codex.refresh_interval_seconds` | `AETHERD_PROVIDERS__CODEX__REFRESH_INTERVAL_SECONDS` | `60` | Codex refresh interval in seconds (`1..=86400`). |
+| `providers.opencode.enabled` | `AETHERD_PROVIDERS__OPENCODE__ENABLED` | `false` | Enable OpenCode Go account quota. |
+| `providers.opencode.auth_file` | `AETHERD_PROVIDERS__OPENCODE__AUTH_FILE` | unset | Explicit OpenCode auth file path. |
+| `providers.opencode.refresh_interval_seconds` | `AETHERD_PROVIDERS__OPENCODE__REFRESH_INTERVAL_SECONDS` | `60` | OpenCode Go refresh interval in seconds (`1..=86400`). |
+
+## AI usage providers
+
+Codex resolves its auth file in this exact order:
+
+1. `AETHERD_PROVIDERS__CODEX__AUTH_FILE` (or the equivalent TOML field)
+2. `$CODEX_HOME/auth.json`
+3. `$HOME/.codex/auth.json`
+
+Only the resolved file is read. An explicit path that is missing is reported as
+unavailable; the daemon does not silently switch accounts. The file must hold
+a Codex OAuth `tokens.access_token`. API-key-only Codex auth is unsupported.
+No Codex CLI is needed in the container. The OAuth access token is reread on
+every refresh, so file updates become effective without restarting aetherd.
+The provider does not refresh expired OAuth tokens itself.
+
+Local development with the default auth file:
+
+```bash
+export AETHERD_PROVIDERS__CODEX__ENABLED=true
+cargo run
+```
+
+An explicit local file uses
+`AETHERD_PROVIDERS__CODEX__AUTH_FILE="$HOME/.codex/auth.json"`.
+For Dokploy or Docker, bind mount the host's `~/.codex/auth.json` to
+`/run/secrets/codex-auth.json` read-only, then set:
+
+```text
+AETHERD_PROVIDERS__CODEX__ENABLED=true
+AETHERD_PROVIDERS__CODEX__AUTH_FILE=/run/secrets/codex-auth.json
+```
+
+The non-root container user must be able to read the mounted file. The Codex
+usage URL is an internal ChatGPT endpoint, not a stable public API; upstream
+authentication and response fields can change without notice.
+
+OpenCode Go uses the `opencode-go` API key entry in OpenCode's structured
+`auth.json`. It resolves an explicit `providers.opencode.auth_file`, then
+`$XDG_DATA_HOME/opencode/auth.json`, then
+`$HOME/.local/share/opencode/auth.json`. The ordinary `opencode` Zen key is not
+accepted for Go quota. For a container, mount the OpenCode auth file read-only
+and set `AETHERD_PROVIDERS__OPENCODE__AUTH_FILE` to its container path.
+The Go usage route exists in OpenCode's official source, but its stability is
+not guaranteed by a published API contract.
+
+```toml
+[providers.codex]
+enabled = false
+refresh_interval_seconds = 60
+
+[providers.opencode]
+enabled = false
+refresh_interval_seconds = 60
+```
 
 Log verbosity is controlled by the standard `RUST_LOG` environment variable
 (for example `RUST_LOG=info,aetherd=debug`).

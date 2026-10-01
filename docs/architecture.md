@@ -16,7 +16,7 @@ partial or failing data never takes the daemon down.
                  +------------------------------+
                     |                       |
         +---------------------+   +-----------------------+
-        |  system collectors  |   |  providers (planned)  |
+        |  system collectors  |   |  usage providers      |
         +---------------------+   +-----------------------+
                     |                       |
               SystemPaths                remote APIs
@@ -31,7 +31,7 @@ partial or failing data never takes the daemon down.
   status codes; they do no parsing themselves.
 - `system` owns Linux telemetry: typed metrics plus parsers for `/proc` and
   `/sys` content. It knows nothing about HTTP.
-- `providers` (planned) owns AI usage normalization behind a trait and registry.
+- `providers` owns AI usage normalization behind a trait and independent refresh tasks.
 
 ## The collector seam
 
@@ -118,13 +118,25 @@ section is unavailable":
 These conventions are part of the schema descriptions so the OpenAPI document is
 the single source of truth.
 
-## AI provider seam (planned)
+## AI provider seam
 
-Providers will implement a small internal trait and register in a registry held
-by `AppState`. Each provider reports its own availability and errors; the
-aggregate usage endpoint collects successful results and marks the rest
-unavailable. Credentials come from the environment only, and are represented by
-a redacting `SecretString` so they cannot be logged by accident.
+Codex and OpenCode Go implement an internal `UsageProvider` trait. Enabled
+providers each run a refresh task on their configured interval, independent of
+the system sampler and Tailscale. `AppState` holds a latest-value cache of
+provider status and successful normalized usage. Failed refreshes mark only
+that provider unavailable and retain its previous successful value, with the
+last successful timestamp for freshness decisions.
 
-No provider code is written until the normalized usage model is defined; the
-roadmap in `TODO.md` tracks that work.
+`GET /v1/providers` reads status; `GET /v1/usage` reads only successful cached
+values. The provider model contains optional quota windows and accounting
+fields, so absent token, request, model, and cost data are not invented.
+Credential file paths come from configuration or narrow standard fallbacks;
+the selected file is read on each refresh. Parsed credentials use redacting
+`SecretString`. Neither raw auth data nor upstream response bodies are exposed.
+
+Codex reads the internal, non-public ChatGPT `wham/usage` JSON endpoint. Its
+availability is subject to upstream changes. OpenCode Go reads a
+key-authenticated `zen/go/v1/usage` route implemented in the official OpenCode
+source; no public stability guarantee has been identified for this route. This
+is a Go account quota, not usage of arbitrary providers behind the OpenCode
+runtime.

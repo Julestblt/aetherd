@@ -1,18 +1,17 @@
 use std::sync::Arc;
 
-use axum::Router;
 use time::OffsetDateTime;
 use tokio::sync::watch;
-use tower_http::trace::TraceLayer;
-use utoipa::OpenApi;
-use utoipa_axum::router::OpenApiRouter;
-use utoipa_axum::routes;
 
-use crate::api::{ApiDoc, error, health, system as system_api};
-use crate::config::{SamplingConfig, TailscaleConfig, TailscaleUnavailable};
+use crate::config::{ProvidersConfig, SamplingConfig, TailscaleConfig, TailscaleUnavailable};
+use crate::providers::ProviderCache;
 use crate::sampling::{Section, Shutdown, SnapshotBuilder, SystemSnapshot};
 use crate::system::{MountStats, RealMountStats, SystemPaths};
 use crate::tailscale::{TailscaleCache, TailscaleSnapshot, initial_section};
+
+mod router;
+
+pub use router::build_router;
 
 /// Shared state handed to every request handler.
 #[derive(Clone, Debug)]
@@ -23,6 +22,8 @@ pub struct AppState {
     pub(crate) sampling: SamplingConfig,
     tailscale: TailscaleConfig,
     tailscale_cache: TailscaleCache,
+    providers: ProvidersConfig,
+    provider_cache: ProviderCache,
     snapshots: watch::Sender<Option<Arc<SystemSnapshot>>>,
     shutdown: watch::Sender<bool>,
 }
@@ -59,6 +60,9 @@ impl AppState {
     ) -> Self {
         let (snapshots, _) = watch::channel(None);
         let (shutdown, _) = watch::channel(false);
+        let provider_cache = ProviderCache::new();
+        provider_cache.configure("codex", "Codex", false, None);
+        provider_cache.configure("opencode-go", "OpenCode Go", false, None);
         Self {
             started_at: OffsetDateTime::now_utc(),
             paths,
@@ -66,6 +70,8 @@ impl AppState {
             sampling,
             tailscale: TailscaleConfig::default(),
             tailscale_cache: TailscaleCache::unavailable(TailscaleUnavailable::Disabled.reason()),
+            providers: ProvidersConfig::default(),
+            provider_cache,
             snapshots,
             shutdown,
         }
@@ -79,6 +85,22 @@ impl AppState {
     pub fn with_tailscale(mut self, tailscale: TailscaleConfig) -> Self {
         self.tailscale_cache = TailscaleCache::new(initial_section(&tailscale));
         self.tailscale = tailscale;
+        self
+    }
+
+    /// Configures independent AI usage providers.
+    #[must_use]
+    pub fn with_providers(mut self, providers: ProvidersConfig) -> Self {
+        let cache = ProviderCache::new();
+        cache.configure("codex", "Codex", providers.codex.enabled, None);
+        cache.configure(
+            "opencode-go",
+            "OpenCode Go",
+            providers.opencode.enabled,
+            None,
+        );
+        self.providers = providers;
+        self.provider_cache = cache;
         self
     }
 
@@ -128,53 +150,12 @@ impl AppState {
     pub(crate) fn tailscale_cache(&self) -> &TailscaleCache {
         &self.tailscale_cache
     }
-}
 
-/// Builds the complete HTTP router, including the `OpenAPI` document route and
-/// the request tracing layer.
-pub fn build_router(state: AppState) -> Router {
-    let (router, api) = build_parts();
+    pub(crate) fn providers_config(&self) -> &ProvidersConfig {
+        &self.providers
+    }
 
-    let router = router
-        .fallback(error::not_found)
-        .method_not_allowed_fallback(error::method_not_allowed)
-        .layer(TraceLayer::new_for_http())
-        .with_state(state);
-
-    with_api_docs(router, api)
-}
-
-#[cfg(feature = "swagger-ui")]
-fn with_api_docs(router: Router, api: utoipa::openapi::OpenApi) -> Router {
-    router.merge(utoipa_swagger_ui::SwaggerUi::new("/swagger-ui").url("/openapi.json", api))
-}
-
-#[cfg(not(feature = "swagger-ui"))]
-fn with_api_docs(router: Router, api: utoipa::openapi::OpenApi) -> Router {
-    router.route(
-        "/openapi.json",
-        axum::routing::get(move || {
-            let api = api.clone();
-            async move { axum::Json(api) }
-        }),
-    )
-}
-
-fn build_parts() -> (Router<AppState>, utoipa::openapi::OpenApi) {
-    let system = OpenApiRouter::new()
-        .routes(routes!(system_api::overview))
-        .routes(routes!(system_api::cpu))
-        .routes(routes!(system_api::memory))
-        .routes(routes!(system_api::host))
-        .routes(routes!(system_api::load))
-        .routes(routes!(system_api::uptime))
-        .routes(routes!(system_api::disks))
-        .routes(routes!(system_api::network))
-        .routes(routes!(system_api::tailscale))
-        .routes(routes!(system_api::stream));
-
-    OpenApiRouter::with_openapi(ApiDoc::openapi())
-        .routes(routes!(health::health))
-        .nest("/v1/system", system)
-        .split_for_parts()
+    pub(crate) fn provider_cache(&self) -> &ProviderCache {
+        &self.provider_cache
+    }
 }

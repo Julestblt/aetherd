@@ -77,16 +77,19 @@ Status legend: `[x]` done and tested, `[ ]` not started, `[~]` partially done.
 
 ## 5. AI usage providers
 
-- [ ] Define normalized usage domain model
-- [ ] Internal provider trait and registry with per-provider isolation
-- [ ] `GET /v1/providers` listing configured providers and status
-- [ ] `GET /v1/usage` normalized usage across enabled providers
-- [ ] OpenAI / Codex provider
+- [x] Define normalized usage domain model
+- [x] Internal provider trait and registry with per-provider isolation
+- [x] `GET /v1/providers` listing configured providers and status
+- [x] `GET /v1/usage` normalized usage across enabled providers
+- [x] OpenAI / Codex provider
 - [ ] Anthropic / Claude provider
 - [ ] OpenRouter provider
-- [ ] OpenCode / OpenCode Go provider
-- [ ] Per-provider credentials from the environment only
-- [ ] Provider-level timeouts, backoff, and caching
+- [x] OpenCode Go quota provider (generic OpenCode runtime usage remains outside this surface)
+- [x] Provider auth files configured by path, with redacted tokens in memory
+- [~] Provider-level timeouts and caching; scheduled retry only, no exponential backoff
+- [ ] Add a documented generic OpenCode runtime usage source if one becomes available
+- [ ] Add token, request, cost, and model detail when upstream quota sources expose them
+- [ ] Review Codex additional rate-limit windows before adding model-specific quota data
 
 ## 6. Docker
 

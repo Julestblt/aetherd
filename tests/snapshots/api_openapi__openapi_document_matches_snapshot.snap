@@ -501,6 +501,63 @@ expression: body
         ],
         "type": "object"
       },
+      "ModelUsage": {
+        "description": "Counters attributed to a model or all models.",
+        "properties": {
+          "cached_input_tokens": {
+            "description": "Cached input token count.",
+            "format": "int64",
+            "minimum": 0,
+            "type": [
+              "integer",
+              "null"
+            ]
+          },
+          "cost_usd": {
+            "description": "Cost in USD.",
+            "format": "double",
+            "type": [
+              "number",
+              "null"
+            ]
+          },
+          "input_tokens": {
+            "description": "Input token count.",
+            "format": "int64",
+            "minimum": 0,
+            "type": [
+              "integer",
+              "null"
+            ]
+          },
+          "model": {
+            "description": "Model identifier, or \"all\" for totals.",
+            "type": "string"
+          },
+          "output_tokens": {
+            "description": "Output token count.",
+            "format": "int64",
+            "minimum": 0,
+            "type": [
+              "integer",
+              "null"
+            ]
+          },
+          "requests": {
+            "description": "Request count.",
+            "format": "int64",
+            "minimum": 0,
+            "type": [
+              "integer",
+              "null"
+            ]
+          }
+        },
+        "required": [
+          "model"
+        ],
+        "type": "object"
+      },
       "NetworkInterface": {
         "description": "An interface entry from `/proc/net/dev`.",
         "properties": {
@@ -634,6 +691,112 @@ expression: body
             ]
           }
         },
+        "type": "object"
+      },
+      "ProviderState": {
+        "description": "Availability of a configured provider.",
+        "enum": [
+          "available",
+          "unavailable",
+          "disabled"
+        ],
+        "type": "string"
+      },
+      "ProviderStatus": {
+        "description": "Cached state of one provider.",
+        "properties": {
+          "display_name": {
+            "description": "Human readable provider name.",
+            "type": "string"
+          },
+          "enabled": {
+            "description": "Whether collection is configured.",
+            "type": "boolean"
+          },
+          "error": {
+            "description": "Secret-free reason when unavailable.",
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "id": {
+            "description": "Stable provider identifier.",
+            "type": "string"
+          },
+          "last_updated_at": {
+            "description": "Time of the last successful refresh, in RFC3339 UTC.",
+            "format": "date-time",
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "status": {
+            "$ref": "#/components/schemas/ProviderState",
+            "description": "Current collection state."
+          }
+        },
+        "required": [
+          "id",
+          "display_name",
+          "enabled",
+          "status"
+        ],
+        "type": "object"
+      },
+      "ProviderUsage": {
+        "description": "Provider-neutral account usage.",
+        "properties": {
+          "account_label": {
+            "description": "Safe account or plan label, when available.",
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "display_name": {
+            "description": "Human readable provider name.",
+            "type": "string"
+          },
+          "models": {
+            "description": "Per-model counters, when reported by the source.",
+            "items": {
+              "$ref": "#/components/schemas/ModelUsage"
+            },
+            "type": [
+              "array",
+              "null"
+            ]
+          },
+          "provider_id": {
+            "description": "Stable provider identifier.",
+            "type": "string"
+          },
+          "totals": {
+            "oneOf": [
+              {
+                "$ref": "#/components/schemas/ModelUsage",
+                "description": "Aggregate counters, when reported by the source."
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "windows": {
+            "description": "Quota windows reported by the source.",
+            "items": {
+              "$ref": "#/components/schemas/UsageWindow"
+            },
+            "type": "array"
+          }
+        },
+        "required": [
+          "provider_id",
+          "display_name",
+          "windows"
+        ],
         "type": "object"
       },
       "Section_CpuMetrics": {
@@ -1413,16 +1576,129 @@ expression: body
           "idle_seconds"
         ],
         "type": "object"
+      },
+      "UsageSnapshot": {
+        "description": "Last successfully collected provider usage values.",
+        "properties": {
+          "collected_at": {
+            "description": "Time the latest successful provider refresh completed, in RFC3339 UTC.",
+            "format": "date-time",
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "providers": {
+            "description": "Successful provider results; unavailable providers are listed by /v1/providers.",
+            "items": {
+              "$ref": "#/components/schemas/ProviderUsage"
+            },
+            "type": "array"
+          }
+        },
+        "required": [
+          "providers"
+        ],
+        "type": "object"
+      },
+      "UsageWindow": {
+        "description": "One quota or accounting window.",
+        "properties": {
+          "cost_usd": {
+            "description": "USD cost, when reported.",
+            "format": "double",
+            "type": [
+              "number",
+              "null"
+            ]
+          },
+          "duration_seconds": {
+            "description": "Window duration in seconds, when reported.",
+            "format": "int64",
+            "minimum": 0,
+            "type": [
+              "integer",
+              "null"
+            ]
+          },
+          "kind": {
+            "$ref": "#/components/schemas/WindowKind",
+            "description": "Classification of the window."
+          },
+          "label": {
+            "description": "Short display label.",
+            "type": "string"
+          },
+          "remaining_percent": {
+            "description": "Percentage left, from 0 to 100.",
+            "format": "double",
+            "type": [
+              "number",
+              "null"
+            ]
+          },
+          "requests": {
+            "description": "Request count, when reported.",
+            "format": "int64",
+            "minimum": 0,
+            "type": [
+              "integer",
+              "null"
+            ]
+          },
+          "resets_at": {
+            "description": "Quota reset time, in RFC3339 UTC.",
+            "format": "date-time",
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "tokens": {
+            "description": "Token count, when reported.",
+            "format": "int64",
+            "minimum": 0,
+            "type": [
+              "integer",
+              "null"
+            ]
+          },
+          "used_percent": {
+            "description": "Percentage consumed, from 0 to 100.",
+            "format": "double",
+            "type": [
+              "number",
+              "null"
+            ]
+          }
+        },
+        "required": [
+          "kind",
+          "label"
+        ],
+        "type": "object"
+      },
+      "WindowKind": {
+        "description": "Period represented by a quota window.",
+        "enum": [
+          "session",
+          "rolling",
+          "daily",
+          "weekly",
+          "monthly",
+          "custom"
+        ],
+        "type": "string"
       }
     }
   },
   "info": {
-    "description": "Linux system telemetry and, later, normalized AI provider usage.",
+    "description": "Linux system telemetry and normalized AI provider usage.",
     "license": {
       "name": "MIT OR Apache-2.0"
     },
     "title": "aetherd API",
-    "version": "0.3.0"
+    "version": "0.4.0"
   },
   "openapi": "3.1.0",
   "paths": {
@@ -1443,6 +1719,29 @@ expression: body
         },
         "tags": [
           "health"
+        ]
+      }
+    },
+    "/v1/providers": {
+      "get": {
+        "operationId": "providers",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/ProviderStatus"
+                  },
+                  "type": "array"
+                }
+              }
+            }
+          }
+        },
+        "summary": "Returns current status for configured AI usage providers.",
+        "tags": [
+          "crate::api::providers"
         ]
       }
     },
@@ -1726,6 +2025,26 @@ expression: body
         },
         "tags": [
           "system"
+        ]
+      }
+    },
+    "/v1/usage": {
+      "get": {
+        "operationId": "usage",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UsageSnapshot"
+                }
+              }
+            }
+          }
+        },
+        "summary": "Returns the last successful normalized usage for each provider.",
+        "tags": [
+          "crate::api::providers"
         ]
       }
     }
