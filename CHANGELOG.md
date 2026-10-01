@@ -7,6 +7,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.5.0] - 2026-10-01
+
+### Changed
+
+- OpenCode usage now uses a Console service-account API key and the official
+  workspace CSV export. The integration reports workspace-wide accounting;
+  Go-only quota percentages and reset times are unavailable from this source.
+
 ## [0.4.0] - 2026-10-01
 
 ### Added
